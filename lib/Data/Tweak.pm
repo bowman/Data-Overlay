@@ -59,10 +59,10 @@ sub _tweak {
                         _tweak({}, $tweak->{$segment});
                 }
             } else {
+                $new_ds->{$segment} = $tweak->{$segment};
                 # tweak may still contain actions
-                # $new_ds->{$segment} = $tweak->{$segment};
-                $new_ds->{$segment} =
-                    _tweak($ds->{$segment}, $tweak->{$segment});
+                #$new_ds->{$segment} =
+                #    _tweak($ds->{$segment}, $tweak->{$segment});
             }
         }
     }
