@@ -56,7 +56,7 @@ sub _tweak {
                 } else {
                     # $ds exhausted
                     $new_ds->{$segment} =
-                        _tweak({}, $tweak->{$segment});
+                        _tweak(undef, $tweak->{$segment});
                 }
             } else {
                 $new_ds->{$segment} = $tweak->{$segment};
