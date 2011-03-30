@@ -75,6 +75,13 @@ sub compose {
     return @new_tweaks;
 }
 
+sub invert {
+    my (@tweaks) = @_;
+    warn "invert not implemented";
+    my @new_tweaks = reverse @tweaks;
+    return @new_tweaks;
+}
+
 __PACKAGE__; # true return
 __END__
 
