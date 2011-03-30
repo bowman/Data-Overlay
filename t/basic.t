@@ -11,11 +11,19 @@ use Data::Overlay qw(overlay);
 cmp_deeply(overlay({}),{}, "{} +++ () = {}");
 #cmp_deeply(overlay({},undef),{}, "{} +++ undef = {}"); #???
 cmp_deeply(overlay({},{}),{}, "{} +++ {} = {}");
+cmp_deeply(overlay({},{},{}),{}, "{} +++ {} +++ {} = {}");
 cmp_deeply(overlay(undef,{}),{}, "undef +++ {} = {}");
 cmp_deeply(overlay({a=>1},{}),{a=>1}, "{a=>1} +++ {} = {a=>1}");
 cmp_deeply(overlay({},{a=>1}),{a=>1}, "{} +++ {a=>1} = {a=>1}");
-cmp_deeply(overlay({a=>{b=>2}},{}),{a=>{b=>2}}, "{a=>{b=>2}} +++ {} = {a=>{b=>2}}");
-cmp_deeply(overlay({},{a=>{b=>2}}),{a=>{b=>2}}, "{} +++ {a=>{b=>2}} = {a=>{b=>2}}");
+cmp_deeply(overlay({},{a=>1},{a=>1}),{a=>1}, "{} +++ {a=>1} = {a=>1}");
+cmp_deeply(overlay({},{a=>1},{a=>1}),{a=>1}, "{} +++ {a=>1}x2 = {a=>1}");
+cmp_deeply(overlay({},{a=>1},{a=>2}),{a=>2}, "{} +++ {a=>1} +++ {a=>2} = {a=>2}");
+cmp_deeply(overlay({a=>{b=>2}},{}),{a=>{b=>2}},
+                  "{a=>{b=>2}} +++ {} = {a=>{b=>2}}");
+cmp_deeply(overlay({},{a=>{b=>2}}),{a=>{b=>2}},
+                  "{} +++ {a=>{b=>2}} = {a=>{b=>2}}");
+cmp_deeply(overlay({},{a=>1},{a=>{b=>2}}),{a=>{b=>2}},
+                  "{} +++ {a=>1} +++ {a=>{b=>2}} = {a=>{b=>2}}");
 
 # hash changes
 cmp_deeply(overlay({a=>1},{a=>2}),{a=>1,a=>2}, "{a=>1} +++ {a=>2} = {a=>1,a=>2}");

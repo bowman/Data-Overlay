@@ -4,6 +4,7 @@ use warnings;
 use strict;
 use Carp;
 use Scalar::Util qw(reftype refaddr);
+use List::Util qw(reduce);
 use Exporter 'import';
 use YAML::XS; # XXX
 
@@ -19,13 +20,13 @@ sub overlay {
     my @min_overlays = compose(@overlays);
     # hoist @overlays to here, only in outer
     # for my $overlay (@min_overlays) { }
-    return _overlay($ds, @min_overlays);
+    return reduce { _overlay($a, $b) } $ds, @min_overlays;
 }
 
 sub _overlay {
-    my ($ds, @overlays) = @_;
+    my ($ds, $overlay) = @_;
 
-# assume HASH for now
+# assume HASH for now (hass)
     my $reftype = reftype($ds);
     my $new_ds;
 
@@ -39,7 +40,6 @@ sub _overlay {
         return "Found $reftype";
     }
 
-    for my $overlay (@overlays) {
         for my $segment (sort keys %$overlay) {
             if ($segment =~ /^=(.*)$/) {
                 my $action = $1;
@@ -71,7 +71,7 @@ warn Dump($overlay->{$segment});
                 #    _overlay($ds->{$segment}, $overlay->{$segment});
             }
         }
-    }
+
     return $new_ds;
 }
 
