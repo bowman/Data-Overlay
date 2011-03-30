@@ -1,28 +1,29 @@
-package Data::Tweak;
+package Data::Overlay;
 
 use warnings;
 use strict;
 use Carp;
 use Scalar::Util qw(reftype refaddr);
 use Exporter 'import';
+use YAML::XS; # XXX
 
 our $VERSION = '1.01';
-our @EXPORT_OK = qw(id tweak compose);
+our @EXPORT_OK = qw(id overlay compose);
 
 sub id {
     return shift;
 }
 
-sub tweak {
-    my ($ds, @tweaks) = @_;
-    my @min_tweaks = compose(@tweaks);
-    # hoist @tweaks to here, only in outer
-    # for my $tweak (@min_tweaks) { }
-    return _tweak($ds, @min_tweaks);
+sub overlay {
+    my ($ds, @overlays) = @_;
+    my @min_overlays = compose(@overlays);
+    # hoist @overlays to here, only in outer
+    # for my $overlay (@min_overlays) { }
+    return _overlay($ds, @min_overlays);
 }
 
-sub _tweak {
-    my ($ds, @tweaks) = @_;
+sub _overlay {
+    my ($ds, @overlays) = @_;
 
 # assume HASH for now
     my $reftype = reftype($ds);
@@ -38,31 +39,36 @@ sub _tweak {
         return "Found $reftype";
     }
 
-    for my $tweak (@tweaks) {
-        for my $segment (sort keys %$tweak) {
+    for my $overlay (@overlays) {
+        for my $segment (sort keys %$overlay) {
             if ($segment =~ /^=(.*)$/) {
                 my $action = $1;
                 if ($action eq 'default') {
-                    $new_ds->{$segment} //= $tweak->{$segment};
+use Carp qw(confess);
+warn Dump($new_ds);
+                    $new_ds //= $overlay->{$segment};
+warn Dump($new_ds);
+warn Dump($overlay->{$segment});
+#confess "A";
                 } elsif ($action eq 'or') {
-                    $new_ds->{$segment} ||= $tweak->{$segment};
+                    $new_ds ||= $overlay->{$segment};
                 } else {
                     die "Bad action";
                 }
-            } elsif (ref $tweak->{$segment}) {
+            } elsif (ref $overlay->{$segment}) {
                 if (ref $ds->{$segment}) {
                     $new_ds->{$segment} =
-                        _tweak($ds->{$segment}, $tweak->{$segment});
+                        _overlay($ds->{$segment}, $overlay->{$segment});
                 } else {
                     # $ds exhausted
                     $new_ds->{$segment} =
-                        _tweak(undef, $tweak->{$segment});
+                        _overlay(undef, $overlay->{$segment});
                 }
             } else {
-                $new_ds->{$segment} = $tweak->{$segment};
-                # tweak may still contain actions
+                $new_ds->{$segment} = $overlay->{$segment};
+                # overlay may still contain actions
                 #$new_ds->{$segment} =
-                #    _tweak($ds->{$segment}, $tweak->{$segment});
+                #    _overlay($ds->{$segment}, $overlay->{$segment});
             }
         }
     }
@@ -70,16 +76,16 @@ sub _tweak {
 }
 
 sub compose {
-    my (@tweaks) = @_;
-    my @new_tweaks = @tweaks;
-    return @new_tweaks;
+    my (@overlays) = @_;
+    my @new_overlays = @overlays;
+    return @new_overlays;
 }
 
 sub invert {
-    my (@tweaks) = @_;
+    my (@overlays) = @_;
     warn "invert not implemented";
-    my @new_tweaks = reverse @tweaks;
-    return @new_tweaks;
+    my @new_overlays = reverse @overlays;
+    return @new_overlays;
 }
 
 __PACKAGE__; # true return
@@ -87,23 +93,23 @@ __END__
 
 =head1 NAME
 
-Data::Tweak - merge/overlay data with composable changes
+Data::Overlay - merge/overlay data with composable changes
 
 =head1 VERSION
 
-Data::Tweak version 1.01
+Data::Overlay version 1.01
 
 =head1 SYNOPSIS
 
 Run the SYNOPSIS with:
 
-    perl -x -MData::Tweak `pmpath Data::Tweak`
+    perl -x -MData::Overlay `pmpath Data::Overlay`
 
 #!perl -s
 #line 48
 
     use strict; use warnings; our $m;
-    use Data::Tweak qw(id tweak compose);
+    use Data::Overlay qw(id overlay compose);
     use Devel::Peek qw(DumpArray);
     use YAML::XS qw(Dump);
 
@@ -185,7 +191,7 @@ Run the SYNOPSIS with:
     that can be set. These descriptions must also include details of any
     configuration language used.
   
-Data::Tweak requires no configuration files or environment variables.
+Data::Overlay requires no configuration files or environment variables.
 
 
 =head1 DEPENDENCIES
