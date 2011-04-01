@@ -81,6 +81,9 @@ sub compose {
     return @new_overlays;
 }
 
+sub decompose {
+}
+
 sub invert {
     my (@overlays) = @_;
     warn "invert not implemented";
@@ -146,17 +149,55 @@ Run the SYNOPSIS with:
 
 =head1 DESCRIPTION
 
-=head2 Ordering Changes
+=head2 Basic Idea
+
+The overlay functions can be used to apply a group of changes
+(also called an overlay) to a data structure, non-destructively,
+returning a shallow-ish copy with the changes applied.
+"Shallow-ish" meaning shallow copies at each level along
+the path of the deeper changes.
+
+  $result = overlay($original, $overlay);
+
+The algorithm walks the overlay structure, either taking
+values from it, or when nothing has changed, retaining the
+values of the original data structure.  This means that the
+only the overlay fully traversed.
+
+When the overlay is doesn't use any special Data::Overlay
+keys (ones starting with "="), then the result will be
+the merger of the original and the overlay, with the overlay
+taking precedence.  In particular, only hashes will really
+be merged, somewhat like C<< %new = (%defaults, %options) >>,
+but recursively.  This means that array refs, scalars, code,
+etc. will be replace whatever is in the original, regardless
+of the original type (so an array in the overlay will take
+precedence over an array, hash or scalar in the original).
+That's why it's not called Data::Underlay.
+
+Any different merging behaviour needs to be marked with
+special keys in the overlay called "actions".  These start
+with an "=" sign.  (Double it in the overlay to have an actual
+leading "=" in the result).  The actions are described below,
+but they combine the original and overlay in various ways,
+pushing/unshifting arrays, only overwriting false or undefined,
+up to providing ability to write your own combining callback.
+
 
 =head2 Memory Handling and Cloning
 
+
+=head1 TODO
+
+I'm not sure about the overlay pile, maybe should just be one
+overlay at a time to make the client use compose or write
+a single one.  That seems a bit mean though.
+
+
+
 =head1 INTERFACE
 
-=for author to fill in:
-    Write a separate section listing the public components of the modules
-    interface. These normally consist of either subroutines that may be
-    exported, or methods that may be called on objects belonging to the
-    classes provided by the module.
+=head2 Actions
 
 
 =head1 DIAGNOSTICS
@@ -184,15 +225,7 @@ Run the SYNOPSIS with:
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
-=for author to fill in:
-    A full explanation of any configuration system(s) used by the
-    module, including the names and locations of any configuration
-    files, and the meaning of any environment variables or properties
-    that can be set. These descriptions must also include details of any
-    configuration language used.
-  
 Data::Overlay requires no configuration files or environment variables.
-
 
 =head1 DEPENDENCIES
 
@@ -219,15 +252,14 @@ None reported.
 
 =head1 BUGS AND LIMITATIONS
 
-I'm happy to hear suggestions, please email them in addition to using
-cpan ratings or annocpan so I notice them faster.
+I'm happy to hear suggestions, please email them or use RT
+in addition to using cpan ratings or annocpan (I'll notice them faster).
 
 No bugs have been reported.
 
 Please report any bugs or feature requests to
 C<bug-data-edit@rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org>.
-
 
 =head1 See Also
 
@@ -263,9 +295,17 @@ Data::Visitor retain_magic option Variable::Magic
 
 autovivification
 
+There some overlap between what this module is trying to do
+and both the darcs "theory of patches", and operational
+transforms.  The overlap is mainly around composing and inverting
+changes, but there's nothing particularly concurrent about Data::Overlay.
+
 =head1 KEYWORDS
 
+Merge, edit, overlay, clone, modify, transform, memory sharing,
+operational transform, patch,
 
+An SEO expert walked into a bar, tavern, pub...
 
 =head1 AUTHOR
 
