@@ -11,12 +11,117 @@ use YAML::XS; # XXX
 our $VERSION = '1.01';
 our @EXPORT_OK = qw(overlay compose);
 
+my %action_map = (
+    default => sub {
+                    my ($old_ds, $overlay) = @_;
+                    return $old_ds // $overlay;
+                },
+    or      => sub {
+                    my ($old_ds, $overlay) = @_;
+                    return $old_ds || $overlay;
+                },
+    push    => sub {
+                    my ($old_ds, $overlay) = @_;
+                    if (reftype($old_ds) eq 'ARRAY') {
+                        return [ @$old_ds, $overlay ];
+                    } else {
+                        return [ $old_ds, $overlay ]; # one elem array
+                    }
+                },
+    unshift => sub {
+                    my ($old_ds, $overlay) = @_;
+                    if (reftype($old_ds) eq 'ARRAY') {
+                        return [ $overlay, @$old_ds ];
+                    } else {
+                        return [ $overlay, $old_ds ]; # "one elem array"
+                    }
+                },
+    pop     => sub {
+                    my ($old_ds, $overlay) = @_;
+                    if (reftype($old_ds) eq 'ARRAY') {
+                        return [ @{$old_ds}[0..$#$old_ds-1] ];
+                    } else {
+                        return [ ]; # pop "one elem array"
+                    }
+                },
+    shift   => sub {
+                    my ($old_ds, $overlay) = @_;
+                    if (reftype($old_ds) eq 'ARRAY') {
+                        return [ @{$old_ds}[1..$#$old_ds] ];
+                    } else {
+                        return [ ]; # shift "one elem array"
+                    }
+                },
+    code    => sub {
+                    my ($old_ds, $overlay) = @_;
+                    return $overlay->($old_ds, $overlay);
+                },
+    code    => sub {
+                    my ($old_ds, $overlay) = @_;
+                    return $overlay->{'=code'}->($old_ds, $overlay);
+                },
+    code    => sub {
+                    my ($old_ds, $overlay) = @_;
+                    $overlay->{'=code'}->($old_ds, $overlay->{'=args'});
+                },
+    foreach => sub {
+                    my ($old_ds, $overlay) = @_;
+                    if (reftype($old_ds) eq 'ARRAY') {
+                        return [ map { overlay($_, $overlay) } @$old_ds ];
+                    } elsif (reftype($old_ds) eq 'HASH') {
+                        return { map {
+                                    $_ => overlay($old_ds->{$_}, $overlay)
+                                } @$old_ds };
+                    } else {
+                        return overlay($old_ds, $overlay);
+                    }
+                },
+    seq     => sub {
+                    my ($old_ds, $overlay) = @_;
+                    # XXX reftype $overlay
+                    reduce { overlay($a, $b) } $old_ds, @$overlay;
+                },
+);
+
+my %inverse_action = (
+    default => 'pop',
+    push    => 'pop',
+    pop     => 'push',
+    shift   => 'unshift',
+    unshift => 'shift',
+    code    => sub {
+                    my ($old_ds, $overlay) = @_;
+                    $overlay->{'=inverse'}->($old_ds, $overlay->{'=args'});
+                },
+    foreach => sub {
+                    my ($old_ds, $overlay) = @_;
+                    # XXX
+                    if (reftype($old_ds) eq 'ARRAY') {
+                        return [ map { overlay($_, $overlay) } @$old_ds ];
+                    } elsif (reftype($old_ds) eq 'HASH') {
+                        return { map {
+                                    $_ => overlay($old_ds->{$_}, $overlay)
+                                } @$old_ds };
+                    } else {
+                        return overlay($old_ds, $overlay);
+                    }
+                },
+);
+
 sub overlay {
-    my ($ds, @overlays) = @_;
-    my @min_overlays = compose(@overlays);
+    my ($ds, $overlay) = @_;
+    # warn "overlay_all" if @_ >= 2;
     # hoist @overlays to here, only in outer
     # for my $overlay (@min_overlays) { }
-    return reduce { _overlay($a, $b) } $ds, @min_overlays;
+    return _overlay($overlay);
+}
+
+sub overlay_all {
+    my ($ds, @overlays) = @_;
+    my $min_overlay = compose(@overlays);
+    # hoist @overlays to here, only in outer
+    # for my $overlay (@min_overlays) { }
+    return reduce { _overlay($a, $b) } $ds, $min_overlay;
 }
 
 sub _overlay {
@@ -264,6 +369,17 @@ Combines invert and overlay:
 
 =head2 Actions
 
+default //
+or ||
+push pop shift unshift
+run code
+foreach
+
+and
+sprintf
+prepend
+append
+eval
 
 =head1 DIAGNOSTICS
 
