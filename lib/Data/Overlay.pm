@@ -9,11 +9,7 @@ use Exporter 'import';
 use YAML::XS; # XXX
 
 our $VERSION = '1.01';
-our @EXPORT_OK = qw(id overlay compose);
-
-sub id {
-    return shift;
-}
+our @EXPORT_OK = qw(overlay compose);
 
 sub overlay {
     my ($ds, @overlays) = @_;
@@ -100,19 +96,15 @@ Data::Overlay - merge/overlay data with composable changes
 
 =head1 VERSION
 
-Data::Overlay version 1.01
+Data::Overlay version 1.01 - format may change, no compatibility promises XXX
 
 =head1 SYNOPSIS
-
-Run the SYNOPSIS with:
-
-    perl -x -MData::Overlay `pmpath Data::Overlay`
 
 #!perl -s
 #line 48
 
     use strict; use warnings; our $m;
-    use Data::Overlay qw(id overlay compose);
+    use Data::Overlay qw(overlay compose);
     use Devel::Peek qw(DumpArray);
     use YAML::XS qw(Dump);
 
@@ -140,12 +132,22 @@ Run the SYNOPSIS with:
     );
 
     # apply %edits in unspecified order
-    my $new_data_structure = id($data_structure, \%edits);
+    my $new_data_structure = overlay($data_structure, \%edits);
 
     print Dump($data_structure, \%edits, $new_data_structure);
 
     # for memory comparison, run with -m
     DumpArray($data_structure, $new_data_structure) if $m;
+
+
+=head2 Running SYNOPSIS
+
+Once Data::Overlay is installed, you can run it with either:
+
+    perl -x -MData::Overlay `pmpath Data::Overlay`
+
+    perl -x -MData::Overlay \
+        `perl -MData::Overlay -le 'print $INC{"Data/Overlay.pm"}'`
 
 =head1 DESCRIPTION
 
@@ -183,8 +185,18 @@ but they combine the original and overlay in various ways,
 pushing/unshifting arrays, only overwriting false or undefined,
 up to providing ability to write your own combining callback.
 
+=head2 Memory Sharing
 
-=head2 Memory Handling and Cloning
+Cloning
+
+
+=head1 GLOSSARY
+
+overlay - (verb)
+        - (noun)
+
+$ds, $old_ds, $new_ds - arbitrary Perl data-structure
+
 
 
 =head1 TODO
@@ -193,9 +205,62 @@ I'm not sure about the overlay pile, maybe should just be one
 overlay at a time to make the client use compose or write
 a single one.  That seems a bit mean though.
 
-
+Self-referential ds & overlays.
 
 =head1 INTERFACE
+
+=head2 overlay
+
+    $new_ds = overlay($old_ds, $overlay);
+
+Apply an overlay to $old_ds, returning $new_ds as the result.
+
+$old_ds is unchanged.  $new_ds may share references to part
+of $old_ds (see L<Memory Sharing>).  If this isn't desired
+then clone $new_ds.
+
+=head2 compose
+
+    $combined_overlay = compose($overlay1, $overlay2, ..);
+
+Produce an overlay that has the combined effect of applying
+$overlay1 then $overlay2, etc.
+
+=head2 decompose
+
+XXX only possible if compose isn't lossy.
+Won't get the input overlays anyway.  Bad idea.
+
+=head2 invert
+
+    $inverted_overlay = invert($overlay);
+    $inverted_overlay = invert($overlay, $new_ds);
+
+Tries to find a inverse overlay, one that would reverse
+the changes of it's argument.  Similar to reversing a patch.
+
+Most overlays are lossy, they overwrite or push without
+keeping track of the discarded values and so are not invertible.
+To fill in these gaps, a data structure can be given as a
+second argument.  Values will be used from it when needed.
+For example, if the overlay does a pop the inverse is
+a push, but the value pushed is undefined unless the second
+argument is present.
+
+The following sequence should pass the is_deeply test,
+except when irreversible operations are in $overlay
+(eg. CODE that is =run).
+
+    $new_ds = overlay($old_ds, $overlay);
+    $inverted_overlay = invert($overlay, $new_ds);
+    $old_ds2 = overlay($new_ds, $inverted_overlay);
+    is_deeply($old_ds, $old_ds2);
+
+=head2 underlayXXX
+
+Combines invert and overlay:
+
+  underlayXXX($overlay, $new_ds) === overlay($new_ds, invert($overlay,$old_ds))
 
 =head2 Actions
 
@@ -236,19 +301,6 @@ Data::Overlay requires no configuration files or environment variables.
     module's distribution, or must be installed separately. ]
 
 None.
-
-
-=head1 INCOMPATIBILITIES
-
-=for author to fill in:
-    A list of any modules that this module cannot be used in conjunction
-    with. This may be due to name conflicts in the interface, or
-    competition for system or program resources, or due to internal
-    limitations of Perl (for example, many modules that use source code
-    filters are mutually incompatible).
-
-None reported.
-
 
 =head1 BUGS AND LIMITATIONS
 
