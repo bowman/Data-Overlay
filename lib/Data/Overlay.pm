@@ -324,6 +324,14 @@ $old_ds is unchanged.  $new_ds may share references to part
 of $old_ds (see L<Memory Sharing>).  If this isn't desired
 then clone $new_ds.
 
+=head2 overlay_all
+
+    $new_ds = overlay_all($old_ds, $overlay1, $overlay2, ...);
+
+Apply several overlays to $old_ds, returning $new_ds as the result.
+They are logically applied left to right, that is $overlay1,
+then overlay2, etc.  (Internally C<compose> is used, see next)
+
 =head2 compose
 
     $combined_overlay = compose($overlay1, $overlay2, ..);
