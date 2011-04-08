@@ -5,11 +5,12 @@ use strict;
 use Carp;
 use Scalar::Util qw(reftype refaddr);
 use List::Util qw(reduce);
+use List::MoreUtils qw(part);
 use Exporter 'import';
 use YAML::XS; # XXX
 
 our $VERSION = '1.01';
-our @EXPORT_OK = qw(overlay compose);
+our @EXPORT_OK = qw(overlay overlay_all compose);
 
 my %action_map = (
     default => sub {
@@ -113,7 +114,7 @@ sub overlay {
     # warn "overlay_all" if @_ >= 2;
     # hoist @overlays to here, only in outer
     # for my $overlay (@min_overlays) { }
-    return _overlay($overlay);
+    return _overlay($ds, $overlay);
 }
 
 sub overlay_all {
@@ -127,53 +128,47 @@ sub overlay_all {
 sub _overlay {
     my ($ds, $overlay) = @_;
 
-# assume HASH for now (hass)
-    my $reftype = reftype($ds);
-    my $new_ds;
+    if (reftype($overlay) && reftype($overlay) eq 'HASH') {
 
-    if (!defined $ds) {
-        $new_ds = {}; #hass
-    } elsif (!$reftype) {
-        $new_ds = {}; #hass ??
-    } elsif ($reftype eq 'HASH') {
-        $new_ds = { %$ds }; # shallow copy
-    } else {
-        return "Found $reftype";
-    }
+        # = is action, == is key with leading =
+        my ($keys, $actions, $escaped) = part { /^(==?)/ && length $1 }
+                                            sort keys %$overlay;
+        die "escaped not handled @$escaped" if $escaped && @$escaped; # XXX
+        die "Too many actions @$actions" if $#$actions > 1; # XXX
 
-        for my $segment (sort keys %$overlay) {
-            if ($segment =~ /^=(.*)$/) {
-                my $action = $1;
-                if ($action eq 'default') {
-use Carp qw(confess);
-warn Dump($new_ds);
-                    $new_ds //= $overlay->{$segment};
-warn Dump($new_ds);
-warn Dump($overlay->{$segment});
-#confess "A";
-                } elsif ($action eq 'or') {
-                    $new_ds ||= $overlay->{$segment};
-                } else {
-                    die "Bad action";
-                }
-            } elsif (ref $overlay->{$segment}) {
-                if (ref $ds->{$segment}) {
-                    $new_ds->{$segment} =
-                        _overlay($ds->{$segment}, $overlay->{$segment});
-                } else {
-                    # $ds exhausted
-                    $new_ds->{$segment} =
-                        _overlay(undef, $overlay->{$segment});
-                }
+        if ($actions && @$actions) {
+            my ($action) = ($actions->[0] =~ /^=(.*)/);
+            die "no action $action" unless exists $action_map{$action};
+            return $action_map{$action}->($ds, $overlay->{"=$action"});
+        } elsif ($keys && @$keys) {
+            my $new_ds;
+            if (reftype($ds) && reftype($ds) eq 'HASH') {
+                $new_ds = { %$ds }; # shallow copy
             } else {
-                $new_ds->{$segment} = $overlay->{$segment};
-                # overlay may still contain actions
-                #$new_ds->{$segment} =
-                #    _overlay($ds->{$segment}, $overlay->{$segment});
+                $new_ds = {}; # $ds is not a HASH
+            }
+
+            for my $key (@$keys) {
+                #my $ds_val = (reftype($ds) eq 'HASH') ? $ds->{$key} : undef;
+                #$new_ds->{$key} = _overlay($ds_val, $overlay->{$key});
+                # using $new_ds b/c we already have a shallow copy
+                $new_ds->{$key} = _overlay($new_ds->{$key}, $overlay->{$key});
+            }
+            return $new_ds;
+        } else {
+            # empty overlay hash
+            # XXX return $ds or keep {} ?
+            if (defined($ds)) {
+                return $ds;
+            } else {
+                return {}; # $ds is not a HASH
             }
         }
-
-    return $new_ds;
+    } else {
+        # all scalars and non-HASH overlay elements are overrides
+        return $overlay;
+    }
+    confess "A return is missing somewhere";
 }
 
 sub compose {
