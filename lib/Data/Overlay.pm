@@ -14,12 +14,26 @@ our @EXPORT_OK = qw(overlay overlay_all compose);
 
 # XXX
 my @action_order = qw(default or unshift shift push pop foreach seq run);
+my %action_map;
+my $default_conf = {
+        action_map => \%action_map,
+        state      => {},
+    };
+# weaken( $default_conf->{action_map} ); XXX
 
-my %action_map = (
+%action_map = (
     config   => sub {
                     my ($old_ds, $overlay, $conf) = @_;
-                    return overlay($old_ds, $overlay->{XXX},
-                                        overlay($conf, $overlay->{YYY}));
+
+                    # start using $conf param
+                    if (!defined $conf) {
+                        $conf = { };
+                    } elsif (reftype($conf) eq 'HASH') {
+                        $conf = { %$conf, %$default_conf };
+                    }
+
+                    return overlay($old_ds, $overlay->{data},
+                                        overlay($conf, $overlay->{conf}));
                 },
     defaults => sub {
                     my ($old_ds, $overlay) = @_;
