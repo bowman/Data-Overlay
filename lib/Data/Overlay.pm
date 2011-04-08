@@ -16,6 +16,11 @@ our @EXPORT_OK = qw(overlay overlay_all compose);
 my @action_order = qw(default or unshift shift push pop foreach seq run);
 
 my %action_map = (
+    config   => sub {
+                    my ($old_ds, $overlay, $conf) = @_;
+                    return overlay($old_ds, $overlay->{XXX},
+                                        overlay($conf, $overlay->{YYY}));
+                },
     defaults => sub {
                     my ($old_ds, $overlay) = @_;
                     return $old_ds // $overlay;
@@ -62,32 +67,32 @@ my %action_map = (
                 },
     run    => sub {
                     my ($old_ds, $overlay) = @_;
-                    return $overlay->{'=code'}->($old_ds, $overlay->{'args'});
-                },
-    code    => sub {
-                    my ($old_ds, $overlay) = @_;
-                    return $overlay->{'=code'}->($old_ds, $overlay);
-                },
-    code    => sub {
-                    my ($old_ds, $overlay) = @_;
-                    $overlay->{'=code'}->($old_ds, $overlay->{'=args'});
+                    return $overlay->{code}->($old_ds, $overlay->{args});
                 },
     foreach => sub {
-                    my ($old_ds, $overlay) = @_;
+                    my ($old_ds, $overlay, $conf) = @_;
                     if (reftype($old_ds) eq 'ARRAY') {
-                        return [ map { overlay($_, $overlay) } @$old_ds ];
+                        return [
+                            map { overlay($_, $overlay, $conf) } @$old_ds
+                        ];
                     } elsif (reftype($old_ds) eq 'HASH') {
-                        return { map {
-                                    $_ => overlay($old_ds->{$_}, $overlay)
-                                } @$old_ds };
+                        return {
+                            map {
+                                $_ => overlay($old_ds->{$_}, $overlay, $conf)
+                            } @$old_ds
+                        };
                     } else {
-                        return overlay($old_ds, $overlay);
+                        return overlay($old_ds, $overlay, $conf);
                     }
                 },
     seq     => sub {
-                    my ($old_ds, $overlay) = @_;
+                    my ($old_ds, $overlay, $conf) = @_;
                     # XXX reftype $overlay
-                    reduce { overlay($a, $b) } $old_ds, @$overlay;
+                    my $ds = $old_ds;
+                    for my $ol (@$overlay) {
+                        $ds = overlay($ds, $ol, $conf);
+                    }
+                    return $ds;
                 },
 );
 
@@ -116,20 +121,20 @@ my %inverse_action = (
                 },
 );
 
-sub overlay {
-    my ($ds, $overlay) = @_;
-    # warn "overlay_all" if @_ >= 2;
-    return _overlay($ds, $overlay);
-}
-
 sub overlay_all {
     my ($ds, @overlays) = @_;
+
     my @min_overlays = compose(@overlays);
-    return reduce { _overlay($a, $b) } $ds, @min_overlays;
+
+    my $conf = {};
+    for my $ol (@min_overlays) {
+        $ds = overlay($ds, $ol, $conf);
+    }
+    return $ds;
 }
 
-sub _overlay {
-    my ($ds, $overlay) = @_;
+sub overlay {
+    my ($ds, $overlay, $conf) = @_;
 
     if (reftype($overlay) && reftype($overlay) eq 'HASH') {
 
@@ -153,7 +158,8 @@ sub _overlay {
 
             for my $key (@$keys) {
                 # using $new_ds b/c we already have a shallow copy of hashes
-                $new_ds->{$key} = _overlay($new_ds->{$key}, $overlay->{$key});
+                $new_ds->{$key} =
+                    overlay($new_ds->{$key}, $overlay->{$key}, $conf);
             }
             return $new_ds;
         } else {
