@@ -112,16 +112,12 @@ my %inverse_action = (
 sub overlay {
     my ($ds, $overlay) = @_;
     # warn "overlay_all" if @_ >= 2;
-    # hoist @overlays to here, only in outer
-    # for my $overlay (@min_overlays) { }
     return _overlay($ds, $overlay);
 }
 
 sub overlay_all {
     my ($ds, @overlays) = @_;
     my $min_overlay = compose(@overlays);
-    # hoist @overlays to here, only in outer
-    # for my $overlay (@min_overlays) { }
     return reduce { _overlay($a, $b) } $ds, $min_overlay;
 }
 
@@ -149,19 +145,16 @@ sub _overlay {
             }
 
             for my $key (@$keys) {
-                #my $ds_val = (reftype($ds) eq 'HASH') ? $ds->{$key} : undef;
-                #$new_ds->{$key} = _overlay($ds_val, $overlay->{$key});
-                # using $new_ds b/c we already have a shallow copy
+                # using $new_ds b/c we already have a shallow copy of hashes
                 $new_ds->{$key} = _overlay($new_ds->{$key}, $overlay->{$key});
             }
             return $new_ds;
         } else {
             # empty overlay hash
-            # XXX return $ds or keep {} ?
             if (defined($ds)) {
-                return $ds;
+                return $ds; # leave $ds alone
             } else {
-                return {}; # $ds is not a HASH
+                return $overlay; # $ds has run out, return empty $overlay {}
             }
         }
     } else {
@@ -377,6 +370,9 @@ or ||
 push pop shift unshift
 run code
 foreach
+
+exists
+delete
 
 and
 sprintf
