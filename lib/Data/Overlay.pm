@@ -155,41 +155,60 @@ sub overlay_all {
 
 sub overlay {
     my ($ds, $overlay, $conf) = @_;
+    $conf ||= $default_conf;
 
     if (reftype($overlay) && reftype($overlay) eq 'HASH') {
 
-        # = is action, == is key with leading =
-        my ($keys, $actions, $escaped) = part { /^(==?)/ && length $1 }
-                                            sort keys %$overlay;
-        die "escaped not handled @$escaped" if $escaped && @$escaped; # XXX
-        die "Too many actions @$actions" if $#$actions > 1; # XXX
-
-        if ($actions && @$actions) {
-            my ($action) = ($actions->[0] =~ /^=(.*)/);
-            die "no action $action" unless exists $action_map{$action};
-            return $action_map{$action}->($ds, $overlay->{"=$action"});
-        } elsif ($keys && @$keys) {
-            my $new_ds;
-            if (reftype($ds) && reftype($ds) eq 'HASH') {
-                $new_ds = { %$ds }; # shallow copy
-            } else {
-                $new_ds = {}; # $ds is not a HASH
-            }
-
-            for my $key (@$keys) {
-                # using $new_ds b/c we already have a shallow copy of hashes
-                $new_ds->{$key} =
-                    overlay($new_ds->{$key}, $overlay->{$key}, $conf);
-            }
-            return $new_ds;
-        } else {
-            # empty overlay hash
+        # trivial case: overlay is {}
+        if (!keys %$overlay) { # empty overlay
             if (defined($ds)) {
                 return $ds; # leave $ds alone
             } else {
                 return $overlay; # $ds has run out, return empty $overlay {}
             }
         }
+
+        # = is action (== is key with leading = "escaped")
+        my ($overlay_keys, $actions, $escaped_keys) =
+                    part { /^(==?)/ && length $1 } keys %$overlay;
+
+        # part might leave undefs
+        $_ ||= [] for ($overlay_keys, $actions, $escaped_keys);
+
+        die "escaped not handled @$escaped_keys" if @$escaped_keys; # XXX
+        die "Too many actions @$actions" if $#$actions > 1; # XXX
+
+        # shallow copy $ds to $new_ds
+        my $new_ds;
+        if (reftype($ds) && reftype($ds) eq 'HASH') {
+            $new_ds = { %$ds }; # shallow copy
+        } else {
+            $new_ds = {}; # $ds is not a HASH
+        }
+
+        # apply overlay_keys
+        for my $key (@$overlay_keys) {
+            # passing $new_ds b/c we already have a shallow copy of hashes
+            $new_ds->{$key} =
+                overlay($new_ds->{$key}, $overlay->{$key}, $conf);
+        }
+
+        # apply any escaped_keys in overlay
+        for my $escaped_key (@$escaped_keys) {
+            my ($actual_key) = ($escaped_key =~ /^=(=.*)/);
+
+            $new_ds->{$actual_key} =
+               overlay($new_ds->{$actual_key}, $overlay->{$escaped_key}, $conf);
+        }
+
+        for my $action_key (sort @$actions) {
+            my ($action) = ($action_key =~ /^=(.*)/);
+            my $callback = $conf->{action_map}{$action};
+            die "no action $action" unless $callback;
+            return $callback->($ds, $overlay->{"=$action"});
+        }
+
+        return $new_ds;
     } else {
         # all scalars and non-HASH overlay elements are overrides
         return $overlay;
