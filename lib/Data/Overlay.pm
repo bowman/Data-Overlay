@@ -13,26 +13,38 @@ our $VERSION = '0.51';
 our @EXPORT = qw(overlay);
 our @EXPORT_OK = qw(overlay overlay_all compose);
 
-# XXX
-my @action_order = qw(default or unshift shift push pop foreach seq run);
 my %action_map;
+my @action_order;
+
 my $default_conf = {
         action_map => \%action_map,
+        action_order => \@action_order,
         state      => {},
         protocol   => {},
     };
 # weaken( $default_conf->{action_map} ); XXX
+
+@action_order = qw(default or unshift shift push pop foreach seq run);
+
+sub _sort_actions {
+    my ($actions, $conf) = @_;
+
+    return @$actions if @$actions == 1; # pre-optimizing..
+
+    # conf changes may override action_order
+    my %action_rank;
+    @action_rank{@action_order} = ( 1 .. @action_order );
+
+    ## no critic
+    return sort { $action_rank{$a} <=> $action_rank{$b} } @$actions;
+}
 
 %action_map = (
     config   => sub {
                     my ($old_ds, $overlay, $conf) = @_;
 
                     # start using $conf param
-                    if (!defined $conf) {
-                        $conf = { };
-                    } elsif (reftype($conf) eq 'HASH') {
-                        $conf = { %$conf, %$default_conf };
-                    }
+                    #$conf ||= $default_conf;
 
                     return overlay($old_ds, $overlay->{data},
                                         overlay($conf, $overlay->{conf}));
@@ -201,7 +213,8 @@ sub overlay {
                overlay($new_ds->{$actual_key}, $overlay->{$escaped_key}, $conf);
         }
 
-        for my $action_key (sort @$actions) {
+        # do each action in order
+        for my $action_key (_sort_actions($actions, $conf)) {
             my ($action) = ($action_key =~ /^=(.*)/);
             my $callback = $conf->{action_map}{$action};
             die "no action $action" unless $callback;
