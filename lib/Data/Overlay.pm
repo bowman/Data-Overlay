@@ -9,7 +9,8 @@ use List::MoreUtils qw(part);
 use Exporter 'import';
 use YAML::XS; # XXX
 
-our $VERSION = '1.01';
+our $VERSION = '0.51';
+our @EXPORT = qw(overlay);
 our @EXPORT_OK = qw(overlay overlay_all compose);
 
 # XXX
