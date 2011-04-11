@@ -18,6 +18,7 @@ my %action_map;
 my $default_conf = {
         action_map => \%action_map,
         state      => {},
+        protocol   => {},
     };
 # weaken( $default_conf->{action_map} ); XXX
 
@@ -36,8 +37,18 @@ my $default_conf = {
                                         overlay($conf, $overlay->{conf}));
                 },
     defaults => sub {
-                    my ($old_ds, $overlay) = @_;
-                    return $old_ds // $overlay;
+                    my ($old_ds, $overlay, $conf) = @_;
+
+                    if (    reftype($old_ds)  eq 'HASH'
+                         && reftype($overlay) eq 'HASH' ) {
+                        my %new_ds = %$old_ds; # shallow copy
+                        for (keys %$overlay) {
+                            $new_ds{$_} //= $overlay->{$_};
+                        }
+                        return \%new_ds;
+                    } else {
+                        return $old_ds // $overlay; # only HASHes have defaults
+                    }
                 },
     default => sub {
                     my ($old_ds, $overlay) = @_;
