@@ -223,14 +223,15 @@ sub compose {
     return { '=seq' => \@overlays };
 }
 
-sub decompose {
+sub XXX {
+    my ($old_ds, $new_ds) = @_;
+    # handle overwrites, push, pop
+    return (XXX => $old_ds, $new_ds);
 }
 
 sub invert {
-    my (@overlays) = @_;
-    warn "invert not implemented";
-    my @new_overlays = reverse @overlays;
-    return @new_overlays;
+    my ($overlay, $source) = @_;
+    die "invert not implemented";
 }
 
 __PACKAGE__; # true return
@@ -509,9 +510,14 @@ grep
 =back
 
 
-=head1 CONFIGURATION AND ENVIRONMENT
+=head1 Cookbook and Serving Suggestions
 
-Data::Overlay requires no configuration files or environment variables.
+=head2 Configuration Data Merging
+=head2 List of Undoable Edits
+
+=head2 Sharing State in Callbacks
+
+Shared lexical variables.
 
 =head1 DEPENDENCIES
 
