@@ -149,12 +149,10 @@ my %inverse_action = (
 sub overlay_all {
     my ($ds, @overlays) = @_;
 
-    my @min_overlays = compose(@overlays);
+    my $min_overlay = compose(@overlays);
 
-    my $conf = {};
-    for my $ol (@min_overlays) {
-        $ds = overlay($ds, $ol, $conf);
-    }
+    $ds = overlay($ds, $min_overlay);
+
     return $ds;
 }
 
