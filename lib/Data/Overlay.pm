@@ -204,8 +204,9 @@ sub overlay {
 
 sub compose {
     my (@overlays) = @_;
-    my @new_overlays = @overlays;
-    return @new_overlays;
+
+    # rubbish dumb merger XXX
+    return { '=seq' => \@overlays };
 }
 
 sub decompose {
