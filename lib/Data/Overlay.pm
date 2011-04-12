@@ -24,7 +24,9 @@ my $default_conf = {
     };
 # weaken( $default_conf->{action_map} ); XXX
 
-@action_order = qw(default or unshift shift push pop foreach seq run);
+@action_order = qw(config default or defaults
+                   unshift shift push pop
+                   foreach seq run);
 
 sub _sort_actions {
     my ($actions, $conf) = @_;
@@ -158,6 +160,11 @@ my %inverse_action = (
                     }
                 },
 );
+
+# XXX
+for my $a (keys %action_map) {
+    warn "$a not in \@action_order" if ! grep { $a eq $_ } @action_order;
+}
 
 sub overlay_all {
     my ($ds, @overlays) = @_;
