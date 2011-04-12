@@ -67,6 +67,7 @@ sub _sort_actions {
                 },
     default => sub {
                     my ($old_ds, $overlay) = @_;
+D("in default", $old_ds, $overlay);
                     return $old_ds // $overlay;
                 },
     or      => sub {
@@ -176,6 +177,8 @@ sub overlay {
     my ($ds, $overlay, $conf) = @_;
     $conf ||= $default_conf;
 
+D($ds,$overlay);
+
     if (reftype($overlay) && reftype($overlay) eq 'HASH') {
 
         # trivial case: overlay is {}
@@ -205,14 +208,15 @@ sub overlay {
             $new_ds = {}; # $ds is not a HASH
         }
 
-        # apply overlay_keys
+        # apply overlay_keys to $new_ds
         for my $key (@$overlay_keys) {
             # passing $new_ds b/c we already have a shallow copy of hashes
             $new_ds->{$key} =
                 overlay($new_ds->{$key}, $overlay->{$key}, $conf);
+D($ds,$overlay,$new_ds, $overlay_keys, $actions, $escaped_keys);
         }
 
-        # apply any escaped_keys in overlay
+        # apply any escaped_keys in overlay to $new_ds
         for my $escaped_key (@$escaped_keys) {
             my ($actual_key) = ($escaped_key =~ /^=(=.*)/);
 
@@ -220,12 +224,14 @@ sub overlay {
                overlay($new_ds->{$actual_key}, $overlay->{$escaped_key}, $conf);
         }
 
-        # do each action in order
+        # apply each action in order to $new_ds
+        # (note that some items really need nesting, eg. config)
         for my $action_key (_sort_actions($actions, $conf)) {
             my ($action) = ($action_key =~ /^=(.*)/);
             my $callback = $conf->{action_map}{$action};
-            die "no action $action" unless $callback;
-            return $callback->($ds, $overlay->{"=$action"});
+            die "No action ($action) in action_map" unless $callback;
+            $new_ds = $callback->($new_ds, $overlay->{$action_key}, $conf);
+D($ds,$overlay,$new_ds, $overlay_keys, $actions, $escaped_keys);
         }
 
         return $new_ds;
@@ -234,6 +240,10 @@ sub overlay {
         return $overlay;
     }
     confess "A return is missing somewhere";
+}
+
+sub D {
+    warn ">>> ", join(" ",caller), ": ", Dump(\@_);
 }
 
 sub compose {
