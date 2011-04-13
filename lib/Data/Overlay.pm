@@ -200,12 +200,33 @@ D($ds,$overlay);
         die "escaped not handled @$escaped_keys" if @$escaped_keys; # XXX
         die "Too many actions @$actions" if $#$actions > 1; # XXX
 
-        # shallow copy $ds to $new_ds
-        my $new_ds;
-        if (reftype($ds) && reftype($ds) eq 'HASH') {
-            $new_ds = { %$ds }; # shallow copy
+        # 0-level copy so that actions operate on $ds in whatever form
+        my $new_ds = $ds;
+
+        # apply each action in order to $new_ds, sequentially
+        # (note that some items really need to nest inner overlays
+        #  to be useful, eg. config applies only to children under "data",
+        #  not to peers)
+        for my $action_key (_sort_actions($actions, $conf)) {
+            my ($action) = ($action_key =~ /^=(.*)/);
+            my $callback = $conf->{action_map}{$action};
+            die "No action ($action) in action_map" unless $callback;
+            $new_ds = $callback->($new_ds, $overlay->{$action_key}, $conf);
+D($ds,$overlay,$new_ds, $overlay_keys, $actions, $escaped_keys);
+        }
+
+        # return if there are only actions, no plain keys
+        # ( important for overlaying scalars, eg. a: 1 +++ a: =default: 1 )
+        return $new_ds unless @$overlay_keys || @$escaped_keys;
+
+        $ds = undef; # don't use $ds anymore, $new_ds instead
+
+        # There are keys in overlay, so insist on a $new_ds hash
+        # (Shallow copy $new_ds in case it is a reference to $ds)
+        if (reftype($new_ds) && reftype($new_ds) eq 'HASH') {
+            $new_ds = { %$new_ds }; # shallow copy
         } else {
-            $new_ds = {}; # $ds is not a HASH
+            $new_ds = {}; # $new_ds is not a HASH ($ds wasn't), must one
         }
 
         # apply overlay_keys to $new_ds
@@ -222,16 +243,6 @@ D($ds,$overlay,$new_ds, $overlay_keys, $actions, $escaped_keys);
 
             $new_ds->{$actual_key} =
                overlay($new_ds->{$actual_key}, $overlay->{$escaped_key}, $conf);
-        }
-
-        # apply each action in order to $new_ds
-        # (note that some items really need nesting, eg. config)
-        for my $action_key (_sort_actions($actions, $conf)) {
-            my ($action) = ($action_key =~ /^=(.*)/);
-            my $callback = $conf->{action_map}{$action};
-            die "No action ($action) in action_map" unless $callback;
-            $new_ds = $callback->($new_ds, $overlay->{$action_key}, $conf);
-D($ds,$overlay,$new_ds, $overlay_keys, $actions, $escaped_keys);
         }
 
         return $new_ds;
