@@ -43,7 +43,7 @@ sub _sort_actions {
     ## no critic (we have list context for sort)
     return sort {
         # unknown actions last
-        ($action_rank{$a} // 9999) <=> ($action_rank{$b} // 9999)
+        ($action_rank{$a} || 9999) <=> ($action_rank{$b} || 9999)
     } @$actions;
 }
 
