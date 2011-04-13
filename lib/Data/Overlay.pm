@@ -281,6 +281,30 @@ sub invert {
     die "invert not implemented";
 }
 
+sub _wrap_debug {
+    my ($action_name, $inner_sub, $conf) = @_;
+    return sub {
+        my ($old_ds, $overlay, $conf) = @_;
+
+        if ($conf->{debug_actions}{$action_name}) {
+            warn "Calling $action_name";
+        }
+        #$conf->{action_map};
+        if ($conf->{debug_actions}) {
+        }
+    }
+}
+
+sub _combine (&) { ## no critic
+    my $code = @_;
+    return sub {
+        my ($old_ds, $overlay, $conf) = @_;
+        # $a = old, $b = new for _combine { $a && $b }
+        $a = $old_ds; $b = $overlay;
+        return $code->(@_);
+    }
+}
+
 __PACKAGE__; # true return
 __END__
 
