@@ -586,6 +586,11 @@ grep
 =head2 Configuration Data Merging
 =head2 List of Undoable Edits
 
+=head2 Circular References in Overlays
+=head2 Unsharing Data with Clone
+Storable, etc
+=head2 Escaping "=" Keys
+Rmap
 =head2 Sharing State in Callbacks
 
 Shared lexical variables.
