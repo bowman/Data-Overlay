@@ -6,6 +6,7 @@ use Carp;
 use Scalar::Util qw(reftype refaddr);
 use List::Util qw(reduce);
 use List::MoreUtils qw(part);
+use Sub::Name qw(subname);
 use Exporter 'import';
 use YAML::XS; # XXX
 
@@ -75,6 +76,45 @@ sub _isreftype {
                         return \%new_ds;
                     } else {
                         return $old_ds // $overlay; # only HASHes have defaults
+                    }
+                },
+    delete   => sub {
+                    my ($old_ds, $overlay, $conf) = @_;
+
+                    if (       _isreftype(HASH => $old_ds)
+                            && _isreftype(HASH => $overlay)) {
+                        # overlay is a set of keys to "delete"
+                        return {
+                            grep {
+                                (exists $overlay->{$_})
+                                    ? ()
+                                    : ($_ => $old_ds->{$_})
+                            } keys %$old_ds
+                        };
+                    } elsif (  _isreftype(ARRAY => $old_ds)
+                            && _isreftype(ARRAY => $overlay)) {
+                        # overlay is a list of indices to "delete"
+                        return [
+                            map { overlay($_, $overlay, $conf) } @$old_ds
+                        ];
+                    } else {
+                        # Container mismatch (ew XXX)
+                        if (     _isreftype(HASH => $old_ds)  ) {
+                            return {
+                                grep {
+                                    ($_ ne $overlay)
+                                        ? ()
+                                        : ( $_ => $old_ds->{$_})
+                                    } keys %$old_ds
+                            };
+                        } elsif (_isreftype(ARRAY => $old_ds) ) {
+                            return [
+                                grep { $_ ne $overlay } @$old_ds
+                            ];
+                        } else {
+                            return ( ($old_ds ne $overlay) ? () : $old_ds );
+                        }
+                        return overlay($old_ds, $overlay, $conf);
                     }
                 },
     default => sub {
@@ -200,9 +240,13 @@ my %inverse_action = (
                 },
 );
 
-# XXX
-for my $a (keys %action_map) {
-    warn "$a not in \@action_order" if ! grep { $a eq $_ } @action_order;
+for my $action (keys %action_map) {
+    # debuggable names for callbacks
+    subname $action, $action_map{$action};
+
+    # XXX
+    warn "$action not in \@action_order"
+        if ! grep { $action eq $_ } @action_order;
 }
 
 sub overlay_all {
@@ -613,6 +657,12 @@ grep
 Storable, etc
 =head2 Escaping "=" Keys
 Rmap
+=head2 Writing Your Own Callbacks
+
+Note that while most of the names of core actions are based
+on mutating perl functions, their implementation is careful
+to do shallow copies.
+
 =head2 Sharing State in Callbacks
 
 Shared lexical variables.
