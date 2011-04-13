@@ -88,7 +88,12 @@ sub _isreftype {
                     my ($old_ds, $overlay) = @_;
 
                     if (_isreftype(ARRAY => $old_ds)) {
-                        return [ @$old_ds, $overlay ];
+                        if (_isreftype(ARRAY => $overlay)) {
+                            # flatten 1 level of ARRAY
+                            return [ @$old_ds, @$overlay ];
+                        } else {
+                            return [ @$old_ds, $overlay ];
+                        }
                     } else {
                         return [ $old_ds, $overlay ]; # one elem array
                     }
@@ -104,7 +109,15 @@ sub _isreftype {
     pop     => sub {
                     my ($old_ds, $overlay) = @_;
                     if (_isreftype(ARRAY => $old_ds)) {
-                        return [ @{$old_ds}[0..$#$old_ds-1] ];
+                        if (_isreftype(ARRAY => $overlay)) {
+                            # if pop's arg is ARRAY, use it's size
+                            # as the number of items to pop
+                            # (for symmetry with push)
+                            my $pop_size = @$overlay;
+                            return [ @{$old_ds}[0..$#$old_ds-$pop_size] ];
+                        } else {
+                            return [ @{$old_ds}[0..$#$old_ds-1] ];
+                        }
                     } else {
                         return [ ]; # pop "one elem array"
                     }

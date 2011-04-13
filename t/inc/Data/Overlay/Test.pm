@@ -15,7 +15,10 @@ sub olok {
 
     cmp_deeply( overlay( $ds,  $overlay) =>  $expect,
                      dt( $ds ).' ~ '.dt($overlay).' ~> '.dt($expect) )
-        or diag explain($ds, $overlay, $expect);
+        or diag "ds  = ", explain($ds),
+                "ol  = ", explain($overlay),
+                "exp = ", explain($expect),
+                "got = ", explain(overlay( $ds,  $overlay)),
 }
 
 sub dt {
