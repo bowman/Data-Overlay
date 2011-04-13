@@ -119,6 +119,9 @@ olok({a=>[1,2]},{a=>{'=shift'=>[1,2,3]}} => {a=>[]});
 olok({a=>[1]},{a=>{'=push'=>['pu','sh'], '=unshift'=>['unsh','ift'],
                    '=pop'=>['pop'],      '=shift'=>['shift']}
                 } => {a=>['ift',1,'pu']});
+olok({a=>[1]},{a=>{'=push'=>['push'], '=unshift'=>['unshift'],
+                   '=pop'=>['pop'],   '=shift'=>['shift']}
+                } => {a=>[1]});
 
 
 # =code =run
