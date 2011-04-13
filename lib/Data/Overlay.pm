@@ -25,7 +25,8 @@ my $default_conf = {
 # weaken( $default_conf->{action_map} ); XXX
 
 @action_order = qw(config default or defaults
-                   unshift shift push pop
+                   unshift push
+                   shift   pop
                    foreach seq run);
 
 sub _sort_actions {
@@ -229,7 +230,6 @@ sub overlay {
         $_ ||= [] for ($overlay_keys, $actions, $escaped_keys);
 
         die "escaped not handled @$escaped_keys" if @$escaped_keys; # XXX
-        die "Too many actions @$actions" if $#$actions > 1; # XXX
 
         # 0-level copy so that actions operate on $ds in whatever form
         my $new_ds = $ds;

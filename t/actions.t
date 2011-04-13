@@ -115,9 +115,15 @@ olok({a=>[[1],[2],3]},{a=>{'=shift'=>[[2],'*']}} => {a=>[3]});
 olok({a=>[1]},{a=>{'=shift'=>[2,'*']}} => {a=>[]});
 olok({a=>[1,2]},{a=>{'=shift'=>[1,2,3]}} => {a=>[]});
 
+# multiple array ops
+olok({a=>[1]},{a=>{'=push'=>['pu','sh'], '=unshift'=>['unsh','ift'],
+                   '=pop'=>['pop'],      '=shift'=>['shift']}
+                } => {a=>['ift',1,'pu']});
 
 
-# =code
+# =code =run
+# =foreach
+# =seq
 # =config
 
 done_testing();
