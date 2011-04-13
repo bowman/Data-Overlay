@@ -33,9 +33,19 @@ sub _sort_actions {
 
     return @$actions if @$actions == 1; # pre-optimizing..
 
-    # conf changes may override action_order
+    # conf changes may override action_order, recalc rank
     my %action_rank;
-    @action_rank{@action_order} = ( 1 .. @action_order );
+    my $i = 1;
+    for my $action (@{ $conf->{action_order} }) {
+        $action_rank{"=$action"} = $i++;
+    }
+
+    ## no critic (we have list context for sort)
+    return sort {
+        # unknown actions last
+        ($action_rank{$a} // 9999) <=> ($action_rank{$b} // 9999)
+    } @$actions;
+}
 
     ## no critic
     return sort { $action_rank{$a} <=> $action_rank{$b} } @$actions;
