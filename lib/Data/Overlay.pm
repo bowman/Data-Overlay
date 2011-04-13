@@ -67,7 +67,6 @@ sub _sort_actions {
                 },
     default => sub {
                     my ($old_ds, $overlay) = @_;
-D("in default", $old_ds, $overlay);
                     return $old_ds // $overlay;
                 },
     or      => sub {
@@ -177,8 +176,6 @@ sub overlay {
     my ($ds, $overlay, $conf) = @_;
     $conf ||= $default_conf;
 
-D($ds,$overlay);
-
     if (reftype($overlay) && reftype($overlay) eq 'HASH') {
 
         # trivial case: overlay is {}
@@ -212,7 +209,6 @@ D($ds,$overlay);
             my $callback = $conf->{action_map}{$action};
             die "No action ($action) in action_map" unless $callback;
             $new_ds = $callback->($new_ds, $overlay->{$action_key}, $conf);
-D($ds,$overlay,$new_ds, $overlay_keys, $actions, $escaped_keys);
         }
 
         # return if there are only actions, no plain keys
@@ -231,10 +227,8 @@ D($ds,$overlay,$new_ds, $overlay_keys, $actions, $escaped_keys);
 
         # apply overlay_keys to $new_ds
         for my $key (@$overlay_keys) {
-            # passing $new_ds b/c we already have a shallow copy of hashes
             $new_ds->{$key} =
                 overlay($new_ds->{$key}, $overlay->{$key}, $conf);
-D($ds,$overlay,$new_ds, $overlay_keys, $actions, $escaped_keys);
         }
 
         # apply any escaped_keys in overlay to $new_ds
