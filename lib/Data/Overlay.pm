@@ -101,9 +101,14 @@ sub _isreftype {
     unshift => sub {
                     my ($old_ds, $overlay) = @_;
                     if (_isreftype(ARRAY => $old_ds)) {
-                        return [ $overlay, @$old_ds ];
+                        if (_isreftype(ARRAY => $overlay)) {
+                            # flatten 1 level of ARRAY
+                            return [ @$overlay, @$old_ds ];
+                        } else {
+                            return [ $overlay, @$old_ds ];
+                        }
                     } else {
-                        return [ $overlay, $old_ds ]; # "one elem array"
+                        return [ $overlay, $old_ds ]; # one elem array
                     }
                 },
     pop     => sub {
@@ -119,15 +124,23 @@ sub _isreftype {
                             return [ @{$old_ds}[0..$#$old_ds-1] ];
                         }
                     } else {
-                        return [ ]; # pop "one elem array"
+                        return [ ]; # pop "one elem array", or zero
                     }
                 },
     shift   => sub {
                     my ($old_ds, $overlay) = @_;
                     if (_isreftype(ARRAY => $old_ds)) {
-                        return [ @{$old_ds}[1..$#$old_ds] ];
+                        if (_isreftype(ARRAY => $overlay)) {
+                            # if pop's arg is ARRAY, use it's size
+                            # as the number of items to pop
+                            # (for symmetry with push)
+                            my $shift_size = @$overlay;
+                            return [ @{$old_ds}[$shift_size..$#$old_ds] ];
+                        } else {
+                            return [ @{$old_ds}[1..$#$old_ds] ];
+                        }
                     } else {
-                        return [ ]; # shift "one elem array"
+                        return [ ]; # shift "one elem array", or zero
                     }
                 },
     run    => sub {
