@@ -47,8 +47,9 @@ sub _sort_actions {
     } @$actions;
 }
 
-    ## no critic
-    return sort { $action_rank{$a} <=> $action_rank{$b} } @$actions;
+sub _isreftype {
+    my ($type, $maybe_ref) = @_;
+    return reftype($maybe_ref) && reftype($maybe_ref) eq $type;
 }
 
 %action_map = (
@@ -64,8 +65,8 @@ sub _sort_actions {
     defaults => sub {
                     my ($old_ds, $overlay, $conf) = @_;
 
-                    if (    reftype($old_ds)  eq 'HASH'
-                         && reftype($overlay) eq 'HASH' ) {
+                    if (    _isreftype(HASH => $old_ds)
+                         && _isreftype(HASH => $overlay) ) {
                         my %new_ds = %$old_ds; # shallow copy
                         for (keys %$overlay) {
                             $new_ds{$_} //= $overlay->{$_};
@@ -85,7 +86,8 @@ sub _sort_actions {
                 },
     push    => sub {
                     my ($old_ds, $overlay) = @_;
-                    if (reftype($old_ds) eq 'ARRAY') {
+
+                    if (_isreftype(ARRAY => $old_ds)) {
                         return [ @$old_ds, $overlay ];
                     } else {
                         return [ $old_ds, $overlay ]; # one elem array
@@ -93,7 +95,7 @@ sub _sort_actions {
                 },
     unshift => sub {
                     my ($old_ds, $overlay) = @_;
-                    if (reftype($old_ds) eq 'ARRAY') {
+                    if (_isreftype(ARRAY => $old_ds)) {
                         return [ $overlay, @$old_ds ];
                     } else {
                         return [ $overlay, $old_ds ]; # "one elem array"
@@ -101,7 +103,7 @@ sub _sort_actions {
                 },
     pop     => sub {
                     my ($old_ds, $overlay) = @_;
-                    if (reftype($old_ds) eq 'ARRAY') {
+                    if (_isreftype(ARRAY => $old_ds)) {
                         return [ @{$old_ds}[0..$#$old_ds-1] ];
                     } else {
                         return [ ]; # pop "one elem array"
@@ -109,7 +111,7 @@ sub _sort_actions {
                 },
     shift   => sub {
                     my ($old_ds, $overlay) = @_;
-                    if (reftype($old_ds) eq 'ARRAY') {
+                    if (_isreftype(ARRAY => $old_ds)) {
                         return [ @{$old_ds}[1..$#$old_ds] ];
                     } else {
                         return [ ]; # shift "one elem array"
@@ -121,11 +123,11 @@ sub _sort_actions {
                 },
     foreach => sub {
                     my ($old_ds, $overlay, $conf) = @_;
-                    if (reftype($old_ds) eq 'ARRAY') {
+                    if (_isreftype(ARRAY => $old_ds)) {
                         return [
                             map { overlay($_, $overlay, $conf) } @$old_ds
                         ];
-                    } elsif (reftype($old_ds) eq 'HASH') {
+                    } elsif (_isreftype(HASH => $old_ds)) {
                         return {
                             map {
                                 $_ => overlay($old_ds->{$_}, $overlay, $conf)
@@ -159,9 +161,9 @@ my %inverse_action = (
     foreach => sub {
                     my ($old_ds, $overlay) = @_;
                     # XXX
-                    if (reftype($old_ds) eq 'ARRAY') {
+                    if (_isreftype(ARRAY => $old_ds)) {
                         return [ map { overlay($_, $overlay) } @$old_ds ];
-                    } elsif (reftype($old_ds) eq 'HASH') {
+                    } elsif (_isreftype(HASH => $old_ds)) {
                         return { map {
                                     $_ => overlay($old_ds->{$_}, $overlay)
                                 } @$old_ds };
@@ -186,7 +188,7 @@ sub overlay {
     my ($ds, $overlay, $conf) = @_;
     $conf ||= $default_conf;
 
-    if (reftype($overlay) && reftype($overlay) eq 'HASH') {
+    if (_isreftype(HASH => $overlay)) {
 
         # trivial case: overlay is {}
         if (!keys %$overlay) { # empty overlay
@@ -229,7 +231,7 @@ sub overlay {
 
         # There are keys in overlay, so insist on a $new_ds hash
         # (Shallow copy $new_ds in case it is a reference to $ds)
-        if (reftype($new_ds) && reftype($new_ds) eq 'HASH') {
+        if (_isreftype(HASH => $new_ds)) {
             $new_ds = { %$new_ds }; # shallow copy
         } else {
             $new_ds = {}; # $new_ds is not a HASH ($ds wasn't), must one
