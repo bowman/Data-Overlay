@@ -192,11 +192,7 @@ sub overlay {
 
         # trivial case: overlay is {}
         if (!keys %$overlay) { # empty overlay
-            if (defined($ds)) {
-                return $ds; # leave $ds alone
-            } else {
-                return $overlay; # $ds has run out, return empty $overlay {}
-            }
+            return $ds; # leave $ds alone
         }
 
         # = is action (== is key with leading = "escaped")
