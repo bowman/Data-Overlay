@@ -84,19 +84,15 @@ sub _isreftype {
                     if (       _isreftype(HASH => $old_ds)
                             && _isreftype(HASH => $overlay)) {
                         # overlay is a set of keys to "delete"
-                        return {
-                            grep {
-                                (exists $overlay->{$_})
-                                    ? ()
-                                    : ($_ => $old_ds->{$_})
-                            } keys %$old_ds
-                        };
+                        my %new_ds = %$old_ds;
+                        delete $new_ds{$_} for (keys %$old_ds);
+                        return \%new_ds;
                     } elsif (  _isreftype(ARRAY => $old_ds)
                             && _isreftype(ARRAY => $overlay)) {
                         # overlay is a list of indices to "delete"
-                        return [
-                            map { overlay($_, $overlay, $conf) } @$old_ds
-                        ];
+                        my @new_ds = @$old_ds;
+                        delete $new_ds[$_] for (@$old_ds);
+                        return \@new_ds;
                     } else {
                         # Container mismatch (ew XXX)
                         if (     _isreftype(HASH => $old_ds)  ) {
