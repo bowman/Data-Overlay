@@ -18,8 +18,9 @@ my %action_map;
 my @action_order;
 
 my $default_conf = {
-        action_map => \%action_map,
+        action_map  => \%action_map,
         action_order => \@action_order,
+        debug       => undef,
         state      => {},
         protocol   => {},
     };
@@ -56,13 +57,22 @@ sub _isreftype {
 
 %action_map = (
     config   => sub {
-                    my ($old_ds, $overlay, $conf) = @_;
+                    my ($old_ds, $overlay, $old_conf) = @_;
 
-                    # start using $conf param
-                    #$conf ||= $default_conf;
+                    my $new_conf = overlay($old_conf, $overlay->{conf});
 
-                    return overlay($old_ds, $overlay->{data},
-                                        overlay($conf, $overlay->{conf}));
+                    # wrap all actions with debug if needed
+                    if (! exist $old_conf->{debug}
+                            && $new_conf->{debug} ) {
+                        my $action_map = $new_conf->{action_map};
+                        my @actions = keys %$action_map;
+                        for my $action (@actions) {
+                            $action_map->{$action} =
+                                _wrap_debug($action, $action_map->{$action});
+                        }
+                    }
+
+                    return overlay($old_ds, $overlay->{data}, $new_conf);
                 },
     defaults => sub {
                     my ($old_ds, $overlay, $conf) = @_;
@@ -344,7 +354,8 @@ sub invert {
 }
 
 sub _wrap_debug {
-    my ($action_name, $inner_sub, $conf) = @_;
+    my ($action_name, $inner_sub) = @_;
+
     return sub {
         my ($old_ds, $overlay, $conf) = @_;
 
