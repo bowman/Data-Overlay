@@ -130,15 +130,14 @@ sub _isreftype {
     push    => sub {
                     my ($old_ds, $overlay) = @_;
 
+                    # flatten 1 level of ARRAY
+                    my @overlay_array = _isreftype(ARRAY => $overlay)
+                                ? @$overlay : $overlay;
+
                     if (_isreftype(ARRAY => $old_ds)) {
-                        if (_isreftype(ARRAY => $overlay)) {
-                            # flatten 1 level of ARRAY
-                            return [ @$old_ds, @$overlay ];
-                        } else {
-                            return [ @$old_ds, $overlay ];
-                        }
+                        return [ @$old_ds, @overlay_array ];
                     } else {
-                        return [ $old_ds, $overlay ]; # one elem array
+                        return [ $old_ds, @overlay_array ]; # one elem array
                     }
                 },
     unshift => sub {

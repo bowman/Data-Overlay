@@ -48,6 +48,9 @@ olok({a=>{b=>2}},{a=>{'=push'=>1}} => {a=>[{b=>2},1]});
 olok({a=>0},{a=>{'=push'=>1}} => {a=>[0,1]});
 olok({a=>''},{a=>{'=push'=>1}} => {a=>['',1]});
 olok({a=>undef}, {a=>{'=push'=>1}} => {a=>[undef,1]});
+# scalar $old_ds
+olok('x', {'=push'=>1} => ['x',1]);
+olok('x', {'=push'=>[1,2]} => ['x',1,2]);
 # multi-item pushes
 olok({a=>[1]},{a=>{'=push'=>[2,3]}} => {a=>[1,2,3]});
 olok({a=>[1]},{a=>{'=push'=>[[2,3]]}} => {a=>[1,[2,3]]});
@@ -85,6 +88,9 @@ olok({a=>{b=>2}},{a=>{'=unshift'=>1}} => {a=>[1,{b=>2}]});
 olok({a=>0},{a=>{'=unshift'=>1}} => {a=>[1,0]});
 olok({a=>''},{a=>{'=unshift'=>1}} => {a=>[1,'']});
 olok({a=>undef}, {a=>{'=unshift'=>1}} => {a=>[1,undef]});
+# scalar $old_ds
+olok('x', {'=unshift'=>1} => [1,'x']);
+olok('x', {'=unshift'=>[1,2]} => [1,2,'x']);
 # multi-item unshiftes
 olok({a=>[1]},{a=>{'=unshift'=>[2,3]}} => {a=>[2,3,1]});
 olok({a=>[1]},{a=>{'=unshift'=>[[2,3]]}} => {a=>[[2,3],1]});
