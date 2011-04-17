@@ -143,15 +143,15 @@ sub _isreftype {
                 },
     unshift => sub {
                     my ($old_ds, $overlay) = @_;
+
+                    # flatten 1 level of ARRAY
+                    my @overlay_array = _isreftype(ARRAY => $overlay)
+                                ? @$overlay : $overlay;
+
                     if (_isreftype(ARRAY => $old_ds)) {
-                        if (_isreftype(ARRAY => $overlay)) {
-                            # flatten 1 level of ARRAY
-                            return [ @$overlay, @$old_ds ];
-                        } else {
-                            return [ $overlay, @$old_ds ];
-                        }
+                        return [ @overlay_array, @$old_ds ];
                     } else {
-                        return [ $overlay, $old_ds ]; # one elem array
+                        return [ @overlay_array, $old_ds ]; # one elem array
                     }
                 },
     pop     => sub {
@@ -367,8 +367,8 @@ sub _wrap_debug {
         }
         my $result = $inner_sub->($old_ds, $overlay, $conf);
         if ($debug) {
-            warn "Back from $action_name\n";
-            warn " got ", dt($result), "\n" if $debug >= 2;
+            warn " Back from $action_name\n";
+            warn "  got ", dt($result), "\n" if $debug >= 2;
         }
         return $result;
     };

@@ -135,7 +135,7 @@ olok(undef,{'=config' =>
 olok(undef,{'=config' =>
                 {
                     #conf => { debug => 1, debug_actions => {defaults=>1} },
-                    conf => { debug => 1 },
+                    conf => { debug => 2 },
                     data => {'=defaults' => { a => undef },
                         a=>{'=default'=>0, '=or'=>'or',
                             '=push'=>['pu','sh'], '=unshift'=>['unsh','ift'],
