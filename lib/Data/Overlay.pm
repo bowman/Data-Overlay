@@ -67,6 +67,7 @@ sub _isreftype {
                     if (!defined $old_conf->{debug}
                             && $new_conf->{debug} ) {
 
+                        # XXX overlay action_map
                         my $old_action_map = $new_conf->{action_map};
                         my $new_action_map;
 
@@ -371,7 +372,8 @@ sub _wrap_debug {
         }
         return $result;
     };
-warn "Wrapped $inner_sub with $s";
+    warn "Wrapped $inner_sub with $s";
+
     return $s;
 }
 
