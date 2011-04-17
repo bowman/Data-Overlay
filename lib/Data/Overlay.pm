@@ -56,164 +56,164 @@ sub _isreftype {
 }
 
 $action_map{config} = sub {
-                    my ($old_ds, $overlay, $old_conf) = @_;
+    my ($old_ds, $overlay, $old_conf) = @_;
 
-                    #my $new_conf = overlay($old_conf, $overlay->{conf}, $old_conf);
-                    # do we really want a config here XXX?
-                    my $new_conf = overlay($old_conf, $overlay->{conf});
+    #my $new_conf = overlay($old_conf, $overlay->{conf}, $old_conf);
+    # do we really want a config here XXX?
+    my $new_conf = overlay($old_conf, $overlay->{conf});
 
-                    # wrap all actions with debug if needed
-                    if (!defined $old_conf->{debug}
-                            && $new_conf->{debug} ) {
+    # wrap all actions with debug if needed
+    if (!defined $old_conf->{debug}
+            && $new_conf->{debug} ) {
 
-                        # XXX overlay action_map
-                        my $old_action_map = $new_conf->{action_map};
-                        my $new_action_map;
+        # XXX overlay action_map
+        my $old_action_map = $new_conf->{action_map};
+        my $new_action_map;
 
-                        my @actions = keys %$old_action_map;
-                        if ($new_conf->{debug_actions}) {
-                            @actions = keys %{ $new_conf->{debug_actions} };
-                        }
+        my @actions = keys %$old_action_map;
+        if ($new_conf->{debug_actions}) {
+            @actions = keys %{ $new_conf->{debug_actions} };
+        }
 
-                        for my $action (@actions) {
-                            $new_action_map->{$action} =
-                                _wrap_debug($action, $old_action_map->{$action});
-                        }
-                        $new_conf->{action_map} = $new_action_map;
-                    }
+        for my $action (@actions) {
+            $new_action_map->{$action} =
+                _wrap_debug($action, $old_action_map->{$action});
+        }
+        $new_conf->{action_map} = $new_action_map;
+    }
 
-                    return overlay($old_ds, $overlay->{data}, $new_conf);
-                };
+    return overlay($old_ds, $overlay->{data}, $new_conf);
+};
 $action_map{defaults} = sub {
-                    my ($old_ds, $overlay, $conf) = @_;
+    my ($old_ds, $overlay, $conf) = @_;
 
-                    if (    _isreftype(HASH => $old_ds)
-                         && _isreftype(HASH => $overlay) ) {
-                        my %new_ds = %$old_ds; # shallow copy
-                        for (keys %$overlay) {
-                            $new_ds{$_} //= $overlay->{$_};
-                        }
-                        return \%new_ds;
-                    } else {
-                        return $old_ds // $overlay; # only HASHes have defaults
-                    }
-                };
+    if (    _isreftype(HASH => $old_ds)
+            && _isreftype(HASH => $overlay) ) {
+        my %new_ds = %$old_ds; # shallow copy
+        for (keys %$overlay) {
+            $new_ds{$_} //= $overlay->{$_};
+        }
+        return \%new_ds;
+    } else {
+        return $old_ds // $overlay; # only HASHes have defaults
+    }
+};
 $action_map{delete} = sub {
-                    my ($old_ds, $overlay, $conf) = @_;
+    my ($old_ds, $overlay, $conf) = @_;
 
-                    if (       _isreftype(HASH => $old_ds)
-                            && _isreftype(HASH => $overlay)) {
-                        # overlay is a set of keys to "delete"
-                        my %new_ds = %$old_ds;
-                        delete $new_ds{$_} for (keys %$old_ds);
-                        return \%new_ds;
-                    } elsif (  _isreftype(ARRAY => $old_ds)
-                            && _isreftype(ARRAY => $overlay)) {
-                        # overlay is a list of indices to "delete"
-                        my @new_ds = @$old_ds;
-                        delete $new_ds[$_] for (@$old_ds);
-                        return \@new_ds;
-                    } else {
-                        warn "Container mismatch (ew XXX)";
-                        return overlay($old_ds, $overlay, $conf);
-                    }
-                };
+    if (       _isreftype(HASH => $old_ds)
+            && _isreftype(HASH => $overlay)) {
+        # overlay is a set of keys to "delete"
+        my %new_ds = %$old_ds;
+        delete $new_ds{$_} for (keys %$old_ds);
+        return \%new_ds;
+    } elsif (  _isreftype(ARRAY => $old_ds)
+            && _isreftype(ARRAY => $overlay)) {
+        # overlay is a list of indices to "delete"
+        my @new_ds = @$old_ds;
+        delete $new_ds[$_] for (@$old_ds);
+        return \@new_ds;
+    } else {
+        warn "Container mismatch (ew XXX)";
+        return overlay($old_ds, $overlay, $conf);
+    }
+};
 $action_map{default} = sub {
-                    my ($old_ds, $overlay) = @_;
-                    return $old_ds // $overlay;
-                };
+    my ($old_ds, $overlay) = @_;
+    return $old_ds // $overlay;
+};
 $action_map{or} = sub {
-                    my ($old_ds, $overlay) = @_;
-                    return $old_ds || $overlay;
-                };
+    my ($old_ds, $overlay) = @_;
+    return $old_ds || $overlay;
+};
 $action_map{push} = sub {
-                    my ($old_ds, $overlay) = @_;
+    my ($old_ds, $overlay) = @_;
 
-                    # flatten 1 level of ARRAY
-                    my @overlay_array = _isreftype(ARRAY => $overlay)
-                                ? @$overlay : $overlay;
+    # flatten 1 level of ARRAY
+    my @overlay_array = _isreftype(ARRAY => $overlay)
+                ? @$overlay : $overlay;
 
-                    if (_isreftype(ARRAY => $old_ds)) {
-                        return [ @$old_ds, @overlay_array ];
-                    } else {
-                        return [ $old_ds, @overlay_array ]; # one elem array
-                    }
-                };
+    if (_isreftype(ARRAY => $old_ds)) {
+        return [ @$old_ds, @overlay_array ];
+    } else {
+        return [ $old_ds, @overlay_array ]; # one elem array
+    }
+};
 $action_map{unshift} = sub {
-                    my ($old_ds, $overlay) = @_;
+    my ($old_ds, $overlay) = @_;
 
-                    # flatten 1 level of ARRAY
-                    my @overlay_array = _isreftype(ARRAY => $overlay)
-                                ? @$overlay : $overlay;
+    # flatten 1 level of ARRAY
+    my @overlay_array = _isreftype(ARRAY => $overlay)
+                ? @$overlay : $overlay;
 
-                    if (_isreftype(ARRAY => $old_ds)) {
-                        return [ @overlay_array, @$old_ds ];
-                    } else {
-                        return [ @overlay_array, $old_ds ]; # one elem array
-                    }
-                };
+    if (_isreftype(ARRAY => $old_ds)) {
+        return [ @overlay_array, @$old_ds ];
+    } else {
+        return [ @overlay_array, $old_ds ]; # one elem array
+    }
+};
 $action_map{pop} = sub {
-                    my ($old_ds, $overlay) = @_;
-                    if (_isreftype(ARRAY => $old_ds)) {
-                        if (_isreftype(ARRAY => $overlay)) {
-                            # if pop's arg is ARRAY, use it's size
-                            # as the number of items to pop
-                            # (for symmetry with push)
-                            my $pop_size = @$overlay;
-                            return [ @{$old_ds}[0..$#$old_ds-$pop_size] ];
-                        } else {
-                            return [ @{$old_ds}[0..$#$old_ds-1] ];
-                        }
-                    } else {
-                        return [ ]; # pop "one elem array", or zero
-                    }
-                };
+    my ($old_ds, $overlay) = @_;
+    if (_isreftype(ARRAY => $old_ds)) {
+        if (_isreftype(ARRAY => $overlay)) {
+            # if pop's arg is ARRAY, use it's size
+            # as the number of items to pop
+            # (for symmetry with push)
+            my $pop_size = @$overlay;
+            return [ @{$old_ds}[0..$#$old_ds-$pop_size] ];
+        } else {
+            return [ @{$old_ds}[0..$#$old_ds-1] ];
+        }
+    } else {
+        return [ ]; # pop "one elem array", or zero
+    }
+};
 $action_map{shift} = sub {
-                    my ($old_ds, $overlay) = @_;
-                    if (_isreftype(ARRAY => $old_ds)) {
-                        if (_isreftype(ARRAY => $overlay)) {
-                            # if pop's arg is ARRAY, use it's size
-                            # as the number of items to pop
-                            # (for symmetry with push)
-                            my $shift_size = @$overlay;
-                            return [ @{$old_ds}[$shift_size..$#$old_ds] ];
-                        } else {
-                            return [ @{$old_ds}[1..$#$old_ds] ];
-                        }
-                    } else {
-                        return [ ]; # shift "one elem array", or zero
-                    }
-                };
+    my ($old_ds, $overlay) = @_;
+    if (_isreftype(ARRAY => $old_ds)) {
+        if (_isreftype(ARRAY => $overlay)) {
+            # if pop's arg is ARRAY, use it's size
+            # as the number of items to pop
+            # (for symmetry with push)
+            my $shift_size = @$overlay;
+            return [ @{$old_ds}[$shift_size..$#$old_ds] ];
+        } else {
+            return [ @{$old_ds}[1..$#$old_ds] ];
+        }
+    } else {
+        return [ ]; # shift "one elem array", or zero
+    }
+};
 $action_map{run} = sub {
-                    my ($old_ds, $overlay) = @_;
-                    return $overlay->{code}->($old_ds, $overlay->{args});
-                };
+    my ($old_ds, $overlay) = @_;
+    return $overlay->{code}->($old_ds, $overlay->{args});
+};
 # XXX each with (k,v) or [i,...]
 $action_map{foreach} = sub {
-                    my ($old_ds, $overlay, $conf) = @_;
-                    if (_isreftype(ARRAY => $old_ds)) {
-                        return [
-                            map { overlay($_, $overlay, $conf) } @$old_ds
-                        ];
-                    } elsif (_isreftype(HASH => $old_ds)) {
-                        return {
-                            map {
-                                $_ => overlay($old_ds->{$_}, $overlay, $conf)
-                            } values %$old_ds
-                        };
-                    } else {
-                        return overlay($old_ds, $overlay, $conf);
-                    }
-                };
+    my ($old_ds, $overlay, $conf) = @_;
+    if (_isreftype(ARRAY => $old_ds)) {
+        return [
+            map { overlay($_, $overlay, $conf) } @$old_ds
+        ];
+    } elsif (_isreftype(HASH => $old_ds)) {
+        return {
+            map {
+                $_ => overlay($old_ds->{$_}, $overlay, $conf)
+            } values %$old_ds
+        };
+    } else {
+        return overlay($old_ds, $overlay, $conf);
+    }
+};
 $action_map{seq} = sub {
-                    my ($old_ds, $overlay, $conf) = @_;
-                    # XXX reftype $overlay
-                    my $ds = $old_ds;
-                    for my $ol (@$overlay) {
-                        $ds = overlay($ds, $ol, $conf);
-                    }
-                    return $ds;
-                };
+    my ($old_ds, $overlay, $conf) = @_;
+    # XXX reftype $overlay
+    my $ds = $old_ds;
+    for my $ol (@$overlay) {
+        $ds = overlay($ds, $ol, $conf);
+    }
+    return $ds;
+};
 
 my %inverse_action = (
     default => 'pop',
