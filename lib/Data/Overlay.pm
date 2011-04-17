@@ -2,9 +2,9 @@ package Data::Overlay;
 
 use warnings;
 use strict;
-use Carp;
+use Carp qw(cluck confess);
 use Scalar::Util qw(reftype refaddr);
-use List::Util qw(reduce);
+use List::Util qw(reduce max);
 use List::MoreUtils qw(part);
 use Sub::Name qw(subname);
 use Exporter 'import';
@@ -21,12 +21,12 @@ my $default_conf = {
         action_map  => \%action_map,
         action_order => \@action_order,
         debug       => undef,
-        state      => {},
-        protocol   => {},
+        #state      => {},
+        #protocol   => {},
     };
 # weaken( $default_conf->{action_map} ); XXX
 
-@action_order = qw(config default or defaults
+@action_order = qw(config delete default or defaults
                    unshift push
                    shift   pop
                    foreach seq run);
@@ -54,22 +54,42 @@ sub _isreftype {
     my ($type, $maybe_ref) = @_;
     return reftype($maybe_ref) && reftype($maybe_ref) eq $type;
 }
+sub _wrap_debug;
 
 %action_map = (
     config   => sub {
                     my ($old_ds, $overlay, $old_conf) = @_;
 
+                    #my $new_conf = overlay($old_conf, $overlay->{conf}, $old_conf);
+                    # do we really want a config here XXX?
                     my $new_conf = overlay($old_conf, $overlay->{conf});
 
                     # wrap all actions with debug if needed
-                    if (! exist $old_conf->{debug}
+                    if (!defined $old_conf->{debug}
                             && $new_conf->{debug} ) {
+
+                        $new_conf = overlay($new_conf, {
+                            action_map => {
+                                '=foreach' => {
+                                    '=run' => {
+                                        code => \&_wrap_debug,
+                                    },
+                                },
+                            },
+                        });
+=pod
                         my $action_map = $new_conf->{action_map};
+
                         my @actions = keys %$action_map;
+                        if ($new_conf->{debug_actions}) {
+                            @actions = keys %{ $new_conf->{debug_actions} };
+                        }
+
                         for my $action (@actions) {
                             $action_map->{$action} =
                                 _wrap_debug($action, $action_map->{$action});
                         }
+=cut
                     }
 
                     return overlay($old_ds, $overlay->{data}, $new_conf);
@@ -104,22 +124,7 @@ sub _isreftype {
                         delete $new_ds[$_] for (@$old_ds);
                         return \@new_ds;
                     } else {
-                        # Container mismatch (ew XXX)
-                        if (     _isreftype(HASH => $old_ds)  ) {
-                            return {
-                                grep {
-                                    ($_ ne $overlay)
-                                        ? ()
-                                        : ( $_ => $old_ds->{$_})
-                                    } keys %$old_ds
-                            };
-                        } elsif (_isreftype(ARRAY => $old_ds) ) {
-                            return [
-                                grep { $_ ne $overlay } @$old_ds
-                            ];
-                        } else {
-                            return ( ($old_ds ne $overlay) ? () : $old_ds );
-                        }
+                        warn "Container mismatch (ew XXX)";
                         return overlay($old_ds, $overlay, $conf);
                     }
                 },
@@ -194,6 +199,7 @@ sub _isreftype {
                     my ($old_ds, $overlay) = @_;
                     return $overlay->{code}->($old_ds, $overlay->{args});
                 },
+# XXX each with (k,v) or [i,...]
     foreach => sub {
                     my ($old_ds, $overlay, $conf) = @_;
                     if (_isreftype(ARRAY => $old_ds)) {
@@ -204,7 +210,7 @@ sub _isreftype {
                         return {
                             map {
                                 $_ => overlay($old_ds->{$_}, $overlay, $conf)
-                            } @$old_ds
+                            } values %$old_ds
                         };
                     } else {
                         return overlay($old_ds, $overlay, $conf);
@@ -354,19 +360,41 @@ sub invert {
 }
 
 sub _wrap_debug {
-    my ($action_name, $inner_sub) = @_;
+    #my ($action_name, $inner_sub) = @_;
+my $action_name = 'X';
+    my ($inner_sub) = @_;
 
-    return sub {
+    my$s=subname "$action_name-debug", sub {
         my ($old_ds, $overlay, $conf) = @_;
 
-        if ($conf->{debug_actions}{$action_name}) {
-            warn "Calling $action_name";
+        my $debug = max($conf->{debug},
+                        (   ref($conf->{debug_actions})
+                         && $conf->{debug_actions}{$action_name} ));
+        if ($debug) {
+            warn "Calling $action_name $inner_sub\n";
+            warn "  with ", dt($overlay), "\n" if $debug >= 1;
+            warn "    conf ", dt({map { "$_" } %$conf}), "\n" if $debug >= 2;
+            cluck " CALL STACK" if $debug >= 3;
         }
-        #$conf->{action_map};
-        if ($conf->{debug_actions}) {
+        my $result = $inner_sub->($old_ds, $overlay, $conf);
+        if ($debug) {
+            warn "Back from $action_name\n";
+            warn " got ", dt($result), "\n" if $debug >= 2;
         }
-    }
+        return $result;
+    };
+warn "Wrapped $inner_sub with $s";
+    return $s;
 }
+
+
+sub dt {
+    my $dumper = Data::Dumper->new( map [$_], @_ );
+    $dumper->Indent(0)->Terse(1);
+    $dumper->Sortkeys(1) if $dumper->can("Sortkeys");
+    return $dumper->Dump;
+}
+
 
 sub _combine (&) { ## no critic
     my $code = @_;
