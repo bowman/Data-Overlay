@@ -123,11 +123,28 @@ olok({a=>[1]},{a=>{'=push'=>['push'], '=unshift'=>['unshift'],
                    '=pop'=>['pop'],   '=shift'=>['shift']}
                 } => {a=>[1]});
 # all of them
-olok(undef,{'=defaults' => { a => undef },
-                a=>{'=default'=>0, '=or'=>'or',
-                    '=push'=>['pu','sh'], '=unshift'=>['unsh','ift'],
-                    '=pop'=>['pop'],      '=shift'=>['shift']}
-            } => {a=>['ift','or','pu']});
+olok(undef,{'=config' =>
+                {
+                    conf => { debug => 1, debug_actions => {defaults=>1} },
+                    data => {'=defaults' => { a => undef },
+                    }
+                }
+            },
+            { a => undef }
+            );
+olok(undef,{'=config' =>
+                {
+                    #conf => { debug => 1, debug_actions => {defaults=>1} },
+                    conf => { debug => 1 },
+                    data => {'=defaults' => { a => undef },
+                        a=>{'=default'=>0, '=or'=>'or',
+                            '=push'=>['pu','sh'], '=unshift'=>['unsh','ift'],
+                            '=pop'=>['pop'],      '=shift'=>['shift']}
+                    }
+                }
+            },
+            {a=>['ift','or','pu']}
+            );
 
 
 # =code =run
