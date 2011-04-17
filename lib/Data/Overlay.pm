@@ -55,8 +55,7 @@ sub _isreftype {
     return reftype($maybe_ref) && reftype($maybe_ref) eq $type;
 }
 
-%action_map = (
-    config   => sub {
+$action_map{config} = sub {
                     my ($old_ds, $overlay, $old_conf) = @_;
 
                     #my $new_conf = overlay($old_conf, $overlay->{conf}, $old_conf);
@@ -84,8 +83,8 @@ sub _isreftype {
                     }
 
                     return overlay($old_ds, $overlay->{data}, $new_conf);
-                },
-    defaults => sub {
+                };
+$action_map{defaults} = sub {
                     my ($old_ds, $overlay, $conf) = @_;
 
                     if (    _isreftype(HASH => $old_ds)
@@ -98,8 +97,8 @@ sub _isreftype {
                     } else {
                         return $old_ds // $overlay; # only HASHes have defaults
                     }
-                },
-    delete   => sub {
+                };
+$action_map{delete} = sub {
                     my ($old_ds, $overlay, $conf) = @_;
 
                     if (       _isreftype(HASH => $old_ds)
@@ -118,16 +117,16 @@ sub _isreftype {
                         warn "Container mismatch (ew XXX)";
                         return overlay($old_ds, $overlay, $conf);
                     }
-                },
-    default => sub {
+                };
+$action_map{default} = sub {
                     my ($old_ds, $overlay) = @_;
                     return $old_ds // $overlay;
-                },
-    or      => sub {
+                };
+$action_map{or} = sub {
                     my ($old_ds, $overlay) = @_;
                     return $old_ds || $overlay;
-                },
-    push    => sub {
+                };
+$action_map{push} = sub {
                     my ($old_ds, $overlay) = @_;
 
                     # flatten 1 level of ARRAY
@@ -139,8 +138,8 @@ sub _isreftype {
                     } else {
                         return [ $old_ds, @overlay_array ]; # one elem array
                     }
-                },
-    unshift => sub {
+                };
+$action_map{unshift} = sub {
                     my ($old_ds, $overlay) = @_;
 
                     # flatten 1 level of ARRAY
@@ -152,8 +151,8 @@ sub _isreftype {
                     } else {
                         return [ @overlay_array, $old_ds ]; # one elem array
                     }
-                },
-    pop     => sub {
+                };
+$action_map{pop} = sub {
                     my ($old_ds, $overlay) = @_;
                     if (_isreftype(ARRAY => $old_ds)) {
                         if (_isreftype(ARRAY => $overlay)) {
@@ -168,8 +167,8 @@ sub _isreftype {
                     } else {
                         return [ ]; # pop "one elem array", or zero
                     }
-                },
-    shift   => sub {
+                };
+$action_map{shift} = sub {
                     my ($old_ds, $overlay) = @_;
                     if (_isreftype(ARRAY => $old_ds)) {
                         if (_isreftype(ARRAY => $overlay)) {
@@ -184,13 +183,13 @@ sub _isreftype {
                     } else {
                         return [ ]; # shift "one elem array", or zero
                     }
-                },
-    run    => sub {
+                };
+$action_map{run} = sub {
                     my ($old_ds, $overlay) = @_;
                     return $overlay->{code}->($old_ds, $overlay->{args});
-                },
+                };
 # XXX each with (k,v) or [i,...]
-    foreach => sub {
+$action_map{foreach} = sub {
                     my ($old_ds, $overlay, $conf) = @_;
                     if (_isreftype(ARRAY => $old_ds)) {
                         return [
@@ -205,8 +204,8 @@ sub _isreftype {
                     } else {
                         return overlay($old_ds, $overlay, $conf);
                     }
-                },
-    seq     => sub {
+                };
+$action_map{seq} = sub {
                     my ($old_ds, $overlay, $conf) = @_;
                     # XXX reftype $overlay
                     my $ds = $old_ds;
@@ -214,8 +213,7 @@ sub _isreftype {
                         $ds = overlay($ds, $ol, $conf);
                     }
                     return $ds;
-                },
-);
+                };
 
 my %inverse_action = (
     default => 'pop',
@@ -243,8 +241,8 @@ my %inverse_action = (
 );
 
 for my $action (keys %action_map) {
-    # debuggable names for callbacks
-    subname $action, $action_map{$action};
+    # debuggable names for callbacks (not the used perl names)
+    subname "$action-overlay", $action_map{$action};
 
     # XXX
     warn "$action not in \@action_order"
