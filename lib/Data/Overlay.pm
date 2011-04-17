@@ -84,6 +84,7 @@ $action_map{config} = sub {
 
     return overlay($old_ds, $overlay->{data}, $new_conf);
 };
+
 $action_map{defaults} = sub {
     my ($old_ds, $overlay, $conf) = @_;
 
@@ -98,6 +99,7 @@ $action_map{defaults} = sub {
         return $old_ds // $overlay; # only HASHes have defaults
     }
 };
+
 $action_map{delete} = sub {
     my ($old_ds, $overlay, $conf) = @_;
 
@@ -118,14 +120,17 @@ $action_map{delete} = sub {
         return overlay($old_ds, $overlay, $conf);
     }
 };
+
 $action_map{default} = sub {
     my ($old_ds, $overlay) = @_;
     return $old_ds // $overlay;
 };
+
 $action_map{or} = sub {
     my ($old_ds, $overlay) = @_;
     return $old_ds || $overlay;
 };
+
 $action_map{push} = sub {
     my ($old_ds, $overlay) = @_;
 
@@ -139,6 +144,7 @@ $action_map{push} = sub {
         return [ $old_ds, @overlay_array ]; # one elem array
     }
 };
+
 $action_map{unshift} = sub {
     my ($old_ds, $overlay) = @_;
 
@@ -152,6 +158,7 @@ $action_map{unshift} = sub {
         return [ @overlay_array, $old_ds ]; # one elem array
     }
 };
+
 $action_map{pop} = sub {
     my ($old_ds, $overlay) = @_;
     if (_isreftype(ARRAY => $old_ds)) {
@@ -168,6 +175,7 @@ $action_map{pop} = sub {
         return [ ]; # pop "one elem array", or zero
     }
 };
+
 $action_map{shift} = sub {
     my ($old_ds, $overlay) = @_;
     if (_isreftype(ARRAY => $old_ds)) {
@@ -184,10 +192,12 @@ $action_map{shift} = sub {
         return [ ]; # shift "one elem array", or zero
     }
 };
+
 $action_map{run} = sub {
     my ($old_ds, $overlay) = @_;
     return $overlay->{code}->($old_ds, $overlay->{args});
 };
+
 # XXX each with (k,v) or [i,...]
 $action_map{foreach} = sub {
     my ($old_ds, $overlay, $conf) = @_;
@@ -205,6 +215,7 @@ $action_map{foreach} = sub {
         return overlay($old_ds, $overlay, $conf);
     }
 };
+
 $action_map{seq} = sub {
     my ($old_ds, $overlay, $conf) = @_;
     # XXX reftype $overlay
@@ -214,6 +225,7 @@ $action_map{seq} = sub {
     }
     return $ds;
 };
+
 
 my %inverse_action = (
     default => 'pop',
