@@ -516,37 +516,6 @@ $overlay1 then $overlay2, etc.
 XXX only possible if compose isn't lossy.
 Won't get the input overlays anyway.  Bad idea.
 
-=head2 invert
-
-    $inverted_overlay = invert($overlay);
-    $inverted_overlay = invert($overlay, $new_ds);
-
-Tries to find a inverse overlay, one that would reverse
-the changes of it's argument.  Similar to reversing a patch.
-
-Most overlays are lossy, they overwrite or push without
-keeping track of the discarded values and so are not invertible.
-To fill in these gaps, a data structure can be given as a
-second argument.  Values will be used from it when needed.
-For example, if the overlay does a pop the inverse is
-a push, but the value pushed is undefined unless the second
-argument is present.
-
-The following sequence should pass the is_deeply test,
-except when irreversible operations are in $overlay
-(eg. CODE that is =run).
-
-    $new_ds = overlay($old_ds, $overlay);
-    $inverted_overlay = invert($overlay, $new_ds);
-    $old_ds2 = overlay($new_ds, $inverted_overlay);
-    is_deeply($old_ds, $old_ds2);
-
-=head2 underlayXXX
-
-Combines invert and overlay:
-
-  underlayXXX($overlay, $new_ds) === overlay($new_ds, invert($overlay,$old_ds))
-
 =head2 Actions
 
 default // dor def_or
