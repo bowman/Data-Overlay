@@ -128,20 +128,23 @@ olok({a=>[1]},{a=>{'=push'=>['pu','sh'], '=unshift'=>['unsh','ift'],
 olok({a=>[1]},{a=>{'=push'=>['push'], '=unshift'=>['unshift'],
                    '=pop'=>['pop'],   '=shift'=>['shift']}
                 } => {a=>[1]});
-# all of them
+
+# try config (mainly for debugging other tests, like the next)
 olok(undef,{'=config' =>
                 {
-                    conf => { debug => 1, debug_actions => {defaults=>1} },
+                    conf => { debug => 0, debug_actions => {defaults=>0} },
                     data => {'=defaults' => { a => undef },
                     }
                 }
             },
             { a => undef }
             );
+
+# all of the array and basic combining ops
 olok(undef,{'=config' =>
                 {
                     #conf => { debug => 1, debug_actions => {defaults=>1} },
-                    conf => { debug => 2 },
+                    conf => { debug => 0 },
                     data => {'=defaults' => { a => undef },
                         a=>{'=default'=>0, '=or'=>'or',
                             '=push'=>['pu','sh'], '=unshift'=>['unsh','ift'],

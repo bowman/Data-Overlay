@@ -209,8 +209,6 @@ sub overlay {
         # part might leave undefs
         $_ ||= [] for ($overlay_keys, $actions, $escaped_keys);
 
-        die "escaped not handled @$escaped_keys" if @$escaped_keys; # XXX
-
         # 0-level copy so that actions operate on $ds in whatever form
         my $new_ds = $ds;
 
