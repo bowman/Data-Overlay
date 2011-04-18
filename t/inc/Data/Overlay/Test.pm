@@ -1,4 +1,5 @@
-package Data::Overlay::Test;
+package # hide from CPAN
+    Data::Overlay::Test;
 
 use strict;
 use warnings;

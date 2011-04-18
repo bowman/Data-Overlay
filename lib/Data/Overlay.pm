@@ -11,363 +11,10 @@ use Exporter 'import';
 # Data::Dumper lazy loaded
 
 our $VERSION = '0.51';
+$VERSION = eval $VERSION; ## no critic
+
 our @EXPORT = qw(overlay);
 our @EXPORT_OK = qw(overlay overlay_all compose);
-
-my %action_map;
-my @action_order;
-
-my $default_conf = {
-        action_map  => \%action_map,
-        action_order => \@action_order,
-        debug       => undef,
-        #state      => {},
-        #protocol   => {},
-    };
-# weaken( $default_conf->{action_map} ); XXX
-
-@action_order = qw(config delete default or defaults
-                   unshift push
-                   shift   pop
-                   foreach seq run);
-
-sub _sort_actions {
-    my ($actions, $conf) = @_;
-
-    return @$actions if @$actions == 1; # pre-optimizing..
-
-    # conf changes may override action_order, recalc rank
-    my %action_rank;
-    my $i = 1;
-    for my $action (@{ $conf->{action_order} }) {
-        $action_rank{"=$action"} = $i++;
-    }
-
-    ## no critic (we have list context for sort)
-    return sort {
-        # unknown actions last
-        ($action_rank{$a} || 9999) <=> ($action_rank{$b} || 9999)
-    } @$actions;
-}
-
-sub _isreftype {
-    my ($type, $maybe_ref) = @_;
-    return reftype($maybe_ref) && reftype($maybe_ref) eq $type;
-}
-
-$action_map{config} = sub {
-    my ($old_ds, $overlay, $old_conf) = @_;
-
-    #my $new_conf = overlay($old_conf, $overlay->{conf}, $old_conf);
-    # do we really want a config here XXX?
-    my $new_conf = overlay($old_conf, $overlay->{conf});
-
-    # wrap all actions with debug if needed
-    if (!defined $old_conf->{debug}
-            && $new_conf->{debug} ) {
-
-        # XXX overlay action_map
-        my $old_action_map = $new_conf->{action_map};
-        my $new_action_map;
-
-        my @actions = keys %$old_action_map;
-        if ($new_conf->{debug_actions}) {
-            @actions = keys %{ $new_conf->{debug_actions} };
-        }
-
-        for my $action (@actions) {
-            $new_action_map->{$action} =
-                _wrap_debug($action, $old_action_map->{$action});
-        }
-        $new_conf->{action_map} = $new_action_map;
-    }
-
-    return overlay($old_ds, $overlay->{data}, $new_conf);
-};
-
-$action_map{defaults} = sub {
-    my ($old_ds, $overlay, $conf) = @_;
-
-    if (    _isreftype(HASH => $old_ds)
-            && _isreftype(HASH => $overlay) ) {
-        my %new_ds = %$old_ds; # shallow copy
-        for (keys %$overlay) {
-            $new_ds{$_} //= $overlay->{$_};
-        }
-        return \%new_ds;
-    } else {
-        return $old_ds // $overlay; # only HASHes have defaults
-    }
-};
-
-$action_map{delete} = sub {
-    my ($old_ds, $overlay, $conf) = @_;
-
-    if (       _isreftype(HASH => $old_ds)
-            && _isreftype(HASH => $overlay)) {
-        # overlay is a set of keys to "delete"
-        my %new_ds = %$old_ds;
-        delete $new_ds{$_} for (keys %$old_ds);
-        return \%new_ds;
-    } elsif (  _isreftype(ARRAY => $old_ds)
-            && _isreftype(ARRAY => $overlay)) {
-        # overlay is a list of indices to "delete"
-        my @new_ds = @$old_ds;
-        delete $new_ds[$_] for (@$old_ds);
-        return \@new_ds;
-    } else {
-        warn "Container mismatch (ew XXX)";
-        return overlay($old_ds, $overlay, $conf);
-    }
-};
-
-$action_map{default} = sub {
-    my ($old_ds, $overlay) = @_;
-    return $old_ds // $overlay;
-};
-
-$action_map{or} = sub {
-    my ($old_ds, $overlay) = @_;
-    return $old_ds || $overlay;
-};
-
-$action_map{push} = sub {
-    my ($old_ds, $overlay) = @_;
-
-    # flatten 1 level of ARRAY
-    my @overlay_array = _isreftype(ARRAY => $overlay)
-                ? @$overlay : $overlay;
-
-    if (_isreftype(ARRAY => $old_ds)) {
-        return [ @$old_ds, @overlay_array ];
-    } else {
-        return [ $old_ds, @overlay_array ]; # one elem array
-    }
-};
-
-$action_map{unshift} = sub {
-    my ($old_ds, $overlay) = @_;
-
-    # flatten 1 level of ARRAY
-    my @overlay_array = _isreftype(ARRAY => $overlay)
-                ? @$overlay : $overlay;
-
-    if (_isreftype(ARRAY => $old_ds)) {
-        return [ @overlay_array, @$old_ds ];
-    } else {
-        return [ @overlay_array, $old_ds ]; # one elem array
-    }
-};
-
-$action_map{pop} = sub {
-    my ($old_ds, $overlay) = @_;
-    if (_isreftype(ARRAY => $old_ds)) {
-        if (_isreftype(ARRAY => $overlay)) {
-            # if pop's arg is ARRAY, use it's size
-            # as the number of items to pop
-            # (for symmetry with push)
-            my $pop_size = @$overlay;
-            return [ @{$old_ds}[0..$#$old_ds-$pop_size] ];
-        } else {
-            return [ @{$old_ds}[0..$#$old_ds-1] ];
-        }
-    } else {
-        return [ ]; # pop "one elem array", or zero
-    }
-};
-
-$action_map{shift} = sub {
-    my ($old_ds, $overlay) = @_;
-    if (_isreftype(ARRAY => $old_ds)) {
-        if (_isreftype(ARRAY => $overlay)) {
-            # if pop's arg is ARRAY, use it's size
-            # as the number of items to pop
-            # (for symmetry with push)
-            my $shift_size = @$overlay;
-            return [ @{$old_ds}[$shift_size..$#$old_ds] ];
-        } else {
-            return [ @{$old_ds}[1..$#$old_ds] ];
-        }
-    } else {
-        return [ ]; # shift "one elem array", or zero
-    }
-};
-
-$action_map{run} = sub {
-    my ($old_ds, $overlay) = @_;
-    return $overlay->{code}->($old_ds, $overlay->{args});
-};
-
-# XXX each with (k,v) or [i,...]
-$action_map{foreach} = sub {
-    my ($old_ds, $overlay, $conf) = @_;
-    if (_isreftype(ARRAY => $old_ds)) {
-        return [
-            map { overlay($_, $overlay, $conf) } @$old_ds
-        ];
-    } elsif (_isreftype(HASH => $old_ds)) {
-        return {
-            map {
-                $_ => overlay($old_ds->{$_}, $overlay, $conf)
-            } values %$old_ds
-        };
-    } else {
-        return overlay($old_ds, $overlay, $conf);
-    }
-};
-
-$action_map{seq} = sub {
-    my ($old_ds, $overlay, $conf) = @_;
-    # XXX reftype $overlay
-    my $ds = $old_ds;
-    for my $ol (@$overlay) {
-        $ds = overlay($ds, $ol, $conf);
-    }
-    return $ds;
-};
-
-
-for my $action (keys %action_map) {
-    # debuggable names for callbacks (not the used perl names)
-    subname "$action-overlay", $action_map{$action};
-
-    # XXX
-    warn "$action not in \@action_order"
-        if ! grep { $action eq $_ } @action_order;
-}
-
-sub overlay_all {
-    my ($ds, @overlays) = @_;
-
-    return overlay($ds, compose(@overlays));
-}
-
-sub overlay {
-    my ($ds, $overlay, $conf) = @_;
-    $conf ||= $default_conf;
-
-    if (_isreftype(HASH => $overlay)) {
-
-        # trivial case: overlay is {}
-        if (!keys %$overlay) { # empty overlay
-            return $ds; # leave $ds alone
-        }
-
-        # = is action (== is key with leading = "escaped")
-        my ($overlay_keys, $actions, $escaped_keys) =
-                    part { /^(==?)/ && length $1 } keys %$overlay;
-
-        # part might leave undefs
-        $_ ||= [] for ($overlay_keys, $actions, $escaped_keys);
-
-        die "escaped not handled @$escaped_keys" if @$escaped_keys; # XXX
-
-        # 0-level copy so that actions operate on $ds in whatever form
-        my $new_ds = $ds;
-
-        # apply each action in order to $new_ds, sequentially
-        # (note that some items really need to nest inner overlays
-        #  to be useful, eg. config applies only to children under "data",
-        #  not to peers)
-        for my $action_key (_sort_actions($actions, $conf)) {
-            my ($action) = ($action_key =~ /^=(.*)/);
-            my $callback = $conf->{action_map}{$action};
-            die "No action ($action) in action_map" unless $callback;
-            $new_ds = $callback->($new_ds, $overlay->{$action_key}, $conf);
-        }
-
-        # return if there are only actions, no plain keys
-        # ( important for overlaying scalars, eg. a: 1 +++ a: =default: 1 )
-        return $new_ds unless @$overlay_keys || @$escaped_keys;
-
-        $ds = undef; # don't use $ds anymore, $new_ds instead
-
-        # There are keys in overlay, so insist on a $new_ds hash
-        # (Shallow copy $new_ds in case it is a reference to $ds)
-        if (_isreftype(HASH => $new_ds)) {
-            $new_ds = { %$new_ds }; # shallow copy
-        } else {
-            $new_ds = {}; # $new_ds is not a HASH ($ds wasn't), must one
-        }
-
-        # apply overlay_keys to $new_ds
-        for my $key (@$overlay_keys) {
-            $new_ds->{$key} =
-                overlay($new_ds->{$key}, $overlay->{$key}, $conf);
-        }
-
-        # apply any escaped_keys in overlay to $new_ds
-        for my $escaped_key (@$escaped_keys) {
-            my ($actual_key) = ($escaped_key =~ /^=(=.*)/);
-
-            $new_ds->{$actual_key} =
-               overlay($new_ds->{$actual_key}, $overlay->{$escaped_key}, $conf);
-        }
-
-        return $new_ds;
-    } else {
-        # all scalars and non-HASH overlay elements are overrides
-        return $overlay;
-    }
-    confess "A return is missing somewhere";
-}
-
-sub compose {
-    my (@overlays) = @_;
-
-    # rubbish dumb merger XXX
-    return { '=seq' => \@overlays };
-}
-
-sub _wrap_debug {
-    my ($action_name, $inner_sub) = @_;
-
-    my $s = subname "$action_name-debug", sub {
-        my ($old_ds, $overlay, $conf) = @_;
-
-        my $debug = max($conf->{debug},
-                        (   ref($conf->{debug_actions})
-                         && $conf->{debug_actions}{$action_name} ));
-        if ($debug) {
-            warn "Calling $action_name $inner_sub\n";
-            warn "  with ", _dt($overlay), "\n" if $debug >= 1;
-            warn "    conf ", _dt({map { "$_" } %$conf}), "\n" if $debug >= 2;
-            cluck " CALL STACK" if $debug >= 3;
-        }
-        my $result = $inner_sub->($old_ds, $overlay, $conf);
-        if ($debug) {
-            warn " Back from $action_name\n";
-            warn "  got ", _dt($result), "\n" if $debug >= 2;
-        }
-        return $result;
-    };
-    warn "Wrapped $inner_sub with $s";
-
-    return $s;
-}
-
-
-sub _dt {
-    require Data::Dumper;
-    my $dumper = Data::Dumper->new( map [$_], @_ );
-    $dumper->Indent(0)->Terse(1);
-    $dumper->Sortkeys(1) if $dumper->can("Sortkeys");
-    return $dumper->Dump;
-}
-
-
-sub _combine (&) { ## no critic
-    my $code = @_;
-    return sub {
-        my ($old_ds, $overlay, $conf) = @_;
-        # $a = old, $b = new for _combine { $a && $b }
-        $a = $old_ds; $b = $overlay;
-        return $code->(@_);
-    }
-}
-
-__PACKAGE__; # true return
-__END__
 
 =head1 NAME
 
@@ -375,7 +22,7 @@ Data::Overlay - merge/overlay data with composable changes
 
 =head1 VERSION
 
-Data::Overlay version 1.01 - format may change, no compatibility promises XXX
+Data::Overlay version 0.51 - ALPHA, no compatibility promises
 
 =head1 SYNOPSIS
 
@@ -486,6 +133,50 @@ a single one.  That seems a bit mean though.
 
 Self-referential ds & overlays.
 
+=cut
+
+my %action_map; # initialized below
+my @action_order;
+
+my $default_conf = {
+        action_map  => \%action_map,
+        action_order => \@action_order,
+        debug       => undef,
+        #debug_actions => {},
+        #state      => {},
+        #protocol   => {},
+    };
+# weaken( $default_conf->{action_map} ); XXX
+
+@action_order = qw(config delete default or defaults
+                   unshift push
+                   shift   pop
+                   foreach seq run);
+
+sub _sort_actions {
+    my ($actions, $conf) = @_;
+
+    return @$actions if @$actions == 1; # pre-optimizing..
+
+    # conf changes may override action_order, recalc rank
+    my %action_rank;
+    my $i = 1;
+    for my $action (@{ $conf->{action_order} }) {
+        $action_rank{"=$action"} = $i++;
+    }
+
+    ## no critic (we have list context for sort)
+    return sort {
+        # unknown actions last
+        ($action_rank{$a} || 9999) <=> ($action_rank{$b} || 9999)
+    } @$actions;
+}
+
+sub _isreftype {
+    my ($type, $maybe_ref) = @_;
+    return reftype($maybe_ref) && reftype($maybe_ref) eq $type;
+}
+
 =head1 INTERFACE
 
 =head2 overlay
@@ -498,6 +189,78 @@ $old_ds is unchanged.  $new_ds may share references to part
 of $old_ds (see L<Memory Sharing>).  If this isn't desired
 then clone $new_ds.
 
+=cut
+
+sub overlay {
+    my ($ds, $overlay, $conf) = @_;
+    $conf ||= $default_conf;
+
+    if (_isreftype(HASH => $overlay)) {
+
+        # trivial case: overlay is {}
+        if (!keys %$overlay) { # empty overlay
+            return $ds; # leave $ds alone
+        }
+
+        # = is action (== is key with leading = "escaped")
+        my ($overlay_keys, $actions, $escaped_keys) =
+                    part { /^(==?)/ && length $1 } keys %$overlay;
+
+        # part might leave undefs
+        $_ ||= [] for ($overlay_keys, $actions, $escaped_keys);
+
+        die "escaped not handled @$escaped_keys" if @$escaped_keys; # XXX
+
+        # 0-level copy so that actions operate on $ds in whatever form
+        my $new_ds = $ds;
+
+        # apply each action in order to $new_ds, sequentially
+        # (note that some items really need to nest inner overlays
+        #  to be useful, eg. config applies only to children under "data",
+        #  not to peers)
+        for my $action_key (_sort_actions($actions, $conf)) {
+            my ($action) = ($action_key =~ /^=(.*)/);
+            my $callback = $conf->{action_map}{$action};
+            die "No action ($action) in action_map" unless $callback;
+            $new_ds = $callback->($new_ds, $overlay->{$action_key}, $conf);
+        }
+
+        # return if there are only actions, no plain keys
+        # ( important for overlaying scalars, eg. a: 1 +++ a: =default: 1 )
+        return $new_ds unless @$overlay_keys || @$escaped_keys;
+
+        $ds = undef; # don't use $ds anymore, $new_ds instead
+
+        # There are keys in overlay, so insist on a $new_ds hash
+        # (Shallow copy $new_ds in case it is a reference to $ds)
+        if (_isreftype(HASH => $new_ds)) {
+            $new_ds = { %$new_ds }; # shallow copy
+        } else {
+            $new_ds = {}; # $new_ds is not a HASH ($ds wasn't), must one
+        }
+
+        # apply overlay_keys to $new_ds
+        for my $key (@$overlay_keys) {
+            $new_ds->{$key} =
+                overlay($new_ds->{$key}, $overlay->{$key}, $conf);
+        }
+
+        # apply any escaped_keys in overlay to $new_ds
+        for my $escaped_key (@$escaped_keys) {
+            my ($actual_key) = ($escaped_key =~ /^=(=.*)/);
+
+            $new_ds->{$actual_key} =
+               overlay($new_ds->{$actual_key}, $overlay->{$escaped_key}, $conf);
+        }
+
+        return $new_ds;
+    } else {
+        # all scalars and non-HASH overlay elements are overrides
+        return $overlay;
+    }
+    confess "A return is missing somewhere";
+}
+
 =head2 overlay_all
 
     $new_ds = overlay_all($old_ds, $overlay1, $overlay2, ...);
@@ -506,6 +269,14 @@ Apply several overlays to $old_ds, returning $new_ds as the result.
 They are logically applied left to right, that is $overlay1,
 then overlay2, etc.  (Internally C<compose> is used, see next)
 
+=cut
+
+sub overlay_all {
+    my ($ds, @overlays) = @_;
+
+    return overlay($ds, compose(@overlays));
+}
+
 =head2 compose
 
     $combined_overlay = compose($overlay1, $overlay2, ..);
@@ -513,12 +284,300 @@ then overlay2, etc.  (Internally C<compose> is used, see next)
 Produce an overlay that has the combined effect of applying
 $overlay1 then $overlay2, etc.
 
-=head2 decompose
+=cut
 
-XXX only possible if compose isn't lossy.
-Won't get the input overlays anyway.  Bad idea.
+sub compose {
+    my (@overlays) = @_;
+
+    # rubbish dumb merger XXX
+    return { '=seq' => \@overlays };
+}
 
 =head2 Actions
+
+=over 4
+
+=item config
+
+=cut
+
+$action_map{config} = sub {
+    my ($old_ds, $overlay, $old_conf) = @_;
+
+    #my $new_conf = overlay($old_conf, $overlay->{conf}, $old_conf);
+    # do we really want a config here XXX?
+    my $new_conf = overlay($old_conf, $overlay->{conf});
+
+    # wrap all actions with debug if needed
+    if (!defined $old_conf->{debug}
+            && $new_conf->{debug} ) {
+
+        # XXX overlay action_map
+        my $old_action_map = $new_conf->{action_map};
+        my $new_action_map;
+
+        my @actions = keys %$old_action_map;
+        if ($new_conf->{debug_actions}) {
+            @actions = keys %{ $new_conf->{debug_actions} };
+        }
+
+        for my $action (@actions) {
+            $new_action_map->{$action} =
+                _wrap_debug($action, $old_action_map->{$action});
+        }
+        $new_conf->{action_map} = $new_action_map;
+    }
+
+    return overlay($old_ds, $overlay->{data}, $new_conf);
+};
+
+=item defaults
+
+=cut
+
+$action_map{defaults} = sub {
+    my ($old_ds, $overlay, $conf) = @_;
+
+    if (    _isreftype(HASH => $old_ds)
+            && _isreftype(HASH => $overlay) ) {
+        my %new_ds = %$old_ds; # shallow copy
+        for (keys %$overlay) {
+            $new_ds{$_} //= $overlay->{$_};
+        }
+        return \%new_ds;
+    } else {
+        return $old_ds // $overlay; # only HASHes have defaults
+    }
+};
+
+=item 
+
+=cut
+
+$action_map{delete} = sub {
+    my ($old_ds, $overlay, $conf) = @_;
+
+    if (       _isreftype(HASH => $old_ds)
+            && _isreftype(HASH => $overlay)) {
+        # overlay is a set of keys to "delete"
+        my %new_ds = %$old_ds;
+        delete $new_ds{$_} for (keys %$old_ds);
+        return \%new_ds;
+    } elsif (  _isreftype(ARRAY => $old_ds)
+            && _isreftype(ARRAY => $overlay)) {
+        # overlay is a list of indices to "delete"
+        my @new_ds = @$old_ds;
+        delete $new_ds[$_] for (@$old_ds);
+        return \@new_ds;
+    } else {
+        warn "Container mismatch (ew XXX)";
+        return overlay($old_ds, $overlay, $conf);
+    }
+};
+
+=item 
+
+=cut
+
+$action_map{default} = sub {
+    my ($old_ds, $overlay) = @_;
+    return $old_ds // $overlay;
+};
+
+=item 
+
+=cut
+
+$action_map{or} = sub {
+    my ($old_ds, $overlay) = @_;
+    return $old_ds || $overlay;
+};
+
+=item 
+
+=cut
+
+$action_map{push} = sub {
+    my ($old_ds, $overlay) = @_;
+
+    # flatten 1 level of ARRAY
+    my @overlay_array = _isreftype(ARRAY => $overlay)
+                ? @$overlay : $overlay;
+
+    if (_isreftype(ARRAY => $old_ds)) {
+        return [ @$old_ds, @overlay_array ];
+    } else {
+        return [ $old_ds, @overlay_array ]; # one elem array
+    }
+};
+
+=item 
+
+=cut
+
+$action_map{unshift} = sub {
+    my ($old_ds, $overlay) = @_;
+
+    # flatten 1 level of ARRAY
+    my @overlay_array = _isreftype(ARRAY => $overlay)
+                ? @$overlay : $overlay;
+
+    if (_isreftype(ARRAY => $old_ds)) {
+        return [ @overlay_array, @$old_ds ];
+    } else {
+        return [ @overlay_array, $old_ds ]; # one elem array
+    }
+};
+
+=item 
+
+=cut
+
+$action_map{pop} = sub {
+    my ($old_ds, $overlay) = @_;
+    if (_isreftype(ARRAY => $old_ds)) {
+        if (_isreftype(ARRAY => $overlay)) {
+            # if pop's arg is ARRAY, use it's size
+            # as the number of items to pop
+            # (for symmetry with push)
+            my $pop_size = @$overlay;
+            return [ @{$old_ds}[0..$#$old_ds-$pop_size] ];
+        } else {
+            return [ @{$old_ds}[0..$#$old_ds-1] ];
+        }
+    } else {
+        return [ ]; # pop "one elem array", or zero
+    }
+};
+
+=item 
+
+=cut
+
+$action_map{shift} = sub {
+    my ($old_ds, $overlay) = @_;
+    if (_isreftype(ARRAY => $old_ds)) {
+        if (_isreftype(ARRAY => $overlay)) {
+            # if pop's arg is ARRAY, use it's size
+            # as the number of items to pop
+            # (for symmetry with push)
+            my $shift_size = @$overlay;
+            return [ @{$old_ds}[$shift_size..$#$old_ds] ];
+        } else {
+            return [ @{$old_ds}[1..$#$old_ds] ];
+        }
+    } else {
+        return [ ]; # shift "one elem array", or zero
+    }
+};
+
+=item 
+
+=cut
+
+$action_map{run} = sub {
+    my ($old_ds, $overlay) = @_;
+    return $overlay->{code}->($old_ds, $overlay->{args});
+};
+
+=item 
+
+=cut
+
+# XXX each with (k,v) or [i,...]
+$action_map{foreach} = sub {
+    my ($old_ds, $overlay, $conf) = @_;
+    if (_isreftype(ARRAY => $old_ds)) {
+        return [
+            map { overlay($_, $overlay, $conf) } @$old_ds
+        ];
+    } elsif (_isreftype(HASH => $old_ds)) {
+        return {
+            map {
+                $_ => overlay($old_ds->{$_}, $overlay, $conf)
+            } values %$old_ds
+        };
+    } else {
+        return overlay($old_ds, $overlay, $conf);
+    }
+};
+
+=item 
+
+=cut
+
+$action_map{seq} = sub {
+    my ($old_ds, $overlay, $conf) = @_;
+    # XXX reftype $overlay
+    my $ds = $old_ds;
+    for my $ol (@$overlay) {
+        $ds = overlay($ds, $ol, $conf);
+    }
+    return $ds;
+};
+
+=back
+
+=cut
+
+for my $action (keys %action_map) {
+    # debuggable names for callbacks (not the used perl names)
+    subname "$action-overlay", $action_map{$action};
+
+    # XXX
+    warn "$action not in \@action_order"
+        if ! grep { $action eq $_ } @action_order;
+}
+
+sub _wrap_debug {
+    my ($action_name, $inner_sub) = @_;
+
+    my $s = subname "$action_name-debug", sub {
+        my ($old_ds, $overlay, $conf) = @_;
+
+        my $debug = max($conf->{debug},
+                        (   ref($conf->{debug_actions})
+                         && $conf->{debug_actions}{$action_name} ));
+        if ($debug) {
+            warn "Calling $action_name $inner_sub\n";
+            warn "  with ", _dt($overlay), "\n" if $debug >= 1;
+            warn "    conf ", _dt({map { "$_" } %$conf}), "\n" if $debug >= 2;
+            cluck " CALL STACK" if $debug >= 3;
+        }
+        my $result = $inner_sub->($old_ds, $overlay, $conf);
+        if ($debug) {
+            warn " Back from $action_name\n";
+            warn "  got ", _dt($result), "\n" if $debug >= 2;
+        }
+        return $result;
+    };
+    warn "Wrapped $inner_sub with $s";
+
+    return $s;
+}
+
+
+sub _dt {
+    require Data::Dumper;
+    my $dumper = Data::Dumper->new( map [$_], @_ );
+    $dumper->Indent(0)->Terse(1);
+    $dumper->Sortkeys(1) if $dumper->can("Sortkeys");
+    return $dumper->Dump;
+}
+
+
+sub _combine (&) { ## no critic
+    my $code = @_;
+    return sub {
+        my ($old_ds, $overlay, $conf) = @_;
+        # $a = old, $b = new for _combine { $a && $b }
+        $a = $old_ds; $b = $overlay;
+        return $code->(@_);
+    }
+}
+
+__PACKAGE__; # true return
+__END__
 
 default // dor def_or
 or ||
