@@ -155,8 +155,9 @@ olok(undef,{'=config' =>
             {a=>['ift','or','pu']}
             );
 
-
 # =code =run
+olok({a=>1},{a=>{'=run'=>{code=>sub{[@_]}}}} => {a=>[1]});
+olok({a=>1},{a=>{'=run'=>{code=>sub{[@_]}, args=>[2,3]}}} => {a=>[1,2,3]});
 # =foreach
 # =seq
 # =config

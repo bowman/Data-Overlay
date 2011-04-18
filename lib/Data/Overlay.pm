@@ -475,7 +475,7 @@ $action_map{shift} = sub {
 
 $action_map{run} = sub {
     my ($old_ds, $overlay) = @_;
-    return $overlay->{code}->($old_ds, $overlay->{args});
+    return $overlay->{code}->($old_ds, @{ $overlay->{args} || [] });
 };
 
 =item foreach
