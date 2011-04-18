@@ -27,13 +27,12 @@ Data::Overlay version 0.51 - ALPHA, no compatibility promises
 =head1 SYNOPSIS
 
 #!perl -s
-#line 48
+#line 31
 
-    use strict; use warnings; our $m;
+    use strict; use warnings;
     use Data::Overlay qw(overlay compose);
-    use Devel::Peek qw(DumpArray);
-    use YAML::XS qw(Dump);
-
+    use Data::Dumper;
+    $Data::Dumper::Sortkeys = 1;
 
     my $data_structure = {
         a => 123,
@@ -46,31 +45,34 @@ Data::Overlay version 0.51 - ALPHA, no compatibility promises
         d => { da => [], db => undef, dc => qr/abc/ },
     };
 
-    my %edits = (
-        f  => 0,                # add key
-        a  => '1, 2, 3',        # overwrite key
-        'c=unshift' => 3.5,     # prepend array
-        'c.1=push' => 7,        # append array
-        'd.da' => { },          # replace array
-        'b.z'  => [7, 8, 9],    # nested operation
-        'd.*' => sub { @_/$_ }, # transform (old, new, path, $_ alias)
-        'd.db=default' => 123,  # only update if undef
+    my %changes = (
+        f  => 0,                    # add top level key
+        a  => '1, 2, 3',            # overwrite key
+        b  => { z => '!'  },        # nested operation
+        c  => { '=unshift' => 3.5 },# prepend array
+        c  => { '=push' => 7 },     # append array
+        d  => { da => [ "DA" ],     # replace w/ differing type
+                db => {
+                    '=default' => 123,  # only update if undef
+                },
+              },
     );
 
-    # apply %edits in unspecified order
-    my $new_data_structure = overlay($data_structure, \%edits);
+    # apply %changes to $data_structure (read-only ok),
+    # returning a new data structure sharing unchanged data with the old
+    my $new_data_structure = overlay($data_structure, \%changes);
 
-    print Dump($data_structure, \%edits, $new_data_structure);
+    # Note sharing shown by Dumper
+    print Dumper($data_structure, \%changes, $new_data_structure);
 
-    # for memory comparison, run with -m
-    DumpArray($data_structure, $new_data_structure) if $m;
-
+__END__
 
 =head2 Running SYNOPSIS
 
 Once Data::Overlay is installed, you can run it with either:
 
     perl -x -MData::Overlay `pmpath Data::Overlay`
+    perl -x -MData::Overlay `pmpath Data::Overlay` -m # Peek result
 
     perl -x -MData::Overlay \
         `perl -MData::Overlay -le 'print $INC{"Data/Overlay.pm"}'`
