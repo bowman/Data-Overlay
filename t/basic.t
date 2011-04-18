@@ -6,9 +6,10 @@ use Test::Deep;
 use Data::Overlay qw(overlay overlay_all);
 use FindBin;
 use lib "$FindBin::Bin/inc";
-use Data::Overlay::Test qw(olok dt);
+use Data::Overlay::Test qw(olok olallok dt);
 
 # olok is overlay ok
+# olllok is overlay_all ok, last param is result
 # dt is dump terse
 
 =for debugging
@@ -27,13 +28,10 @@ olok({a=>{b=>2}},{} => {a=>{b=>2}});
 olok({},{a=>{b=>2}} => {a=>{b=>2}});
 
 # overlay_all
-cmp_deeply(overlay_all({},{},{}) => {}, "{} +++ {} +++ {} = {}");
-cmp_deeply(overlay_all({},{a=>1},{a=>1}) => {a=>1},
-                    "{} +++ {a=>1}x2 = {a=>1}");
-cmp_deeply(overlay_all({},{a=>1},{a=>2}) => {a=>2},
-                    "{} +++ {a=>1} +++ {a=>2} = {a=>2}");
-cmp_deeply(overlay_all({},{a=>1},{a=>{b=>2}}) => {a=>{b=>2}},
-                    "{} +++ {a=>1} +++ {a=>{b=>2}} = {a=>{b=>2}}");
+olallok({},{},{} => {});
+olallok({},{a=>1},{a=>1} => {a=>1});
+olallok({},{a=>1},{a=>2} => {a=>2});
+olallok({},{a=>1},{a=>{b=>2}} => {a=>{b=>2}});
 
 # hash changes
 olok({a=>1},{a=>2} => {a=>1,a=>2});
