@@ -8,7 +8,6 @@ use List::Util qw(reduce max);
 use List::MoreUtils qw(part);
 use Sub::Name qw(subname);
 use Exporter 'import';
-use YAML::XS; # XXX
 
 our $VERSION = '0.51';
 our @EXPORT = qw(overlay);
@@ -227,31 +226,6 @@ $action_map{seq} = sub {
 };
 
 
-my %inverse_action = (
-    default => 'pop',
-    push    => 'pop',
-    pop     => 'push',
-    shift   => 'unshift',
-    unshift => 'shift',
-    code    => sub {
-                    my ($old_ds, $overlay) = @_;
-                    $overlay->{'=inverse'}->($old_ds, $overlay->{'=args'});
-                },
-    foreach => sub {
-                    my ($old_ds, $overlay) = @_;
-                    # XXX
-                    if (_isreftype(ARRAY => $old_ds)) {
-                        return [ map { overlay($_, $overlay) } @$old_ds ];
-                    } elsif (_isreftype(HASH => $old_ds)) {
-                        return { map {
-                                    $_ => overlay($old_ds->{$_}, $overlay)
-                                } @$old_ds };
-                    } else {
-                        return overlay($old_ds, $overlay);
-                    }
-                },
-);
-
 for my $action (keys %action_map) {
     # debuggable names for callbacks (not the used perl names)
     subname "$action-overlay", $action_map{$action};
@@ -337,26 +311,11 @@ sub overlay {
     confess "A return is missing somewhere";
 }
 
-sub D {
-    warn ">>> ", join(" ",caller), ": ", Dump(\@_);
-}
-
 sub compose {
     my (@overlays) = @_;
 
     # rubbish dumb merger XXX
     return { '=seq' => \@overlays };
-}
-
-sub XXX {
-    my ($old_ds, $new_ds) = @_;
-    # handle overwrites, push, pop
-    return (XXX => $old_ds, $new_ds);
-}
-
-sub invert {
-    my ($overlay, $source) = @_;
-    die "invert not implemented";
 }
 
 sub _wrap_debug {
