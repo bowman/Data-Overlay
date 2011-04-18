@@ -471,6 +471,15 @@ $action_map{shift} = sub {
 
 =item run
 
+      '=run' => {
+        code => sub {
+            my ($old_ds, @args) = @_;
+            ...;
+            return $result;
+        },
+        args => [ ... ], # optional argument list
+      }
+
 =cut
 
 $action_map{run} = sub {

@@ -145,8 +145,9 @@ olok(undef,{'=config' =>
                 {
                     #conf => { debug => 1, debug_actions => {defaults=>1} },
                     conf => { debug => 0 },
-                    data => {'=defaults' => { a => undef },
-                        a=>{'=default'=>0, '=or'=>'or',
+                    data => {
+                        '=defaults' => { a => undef },
+                        a =>{'=default'=>0, '=or'=>'or',
                             '=push'=>['pu','sh'], '=unshift'=>['unsh','ift'],
                             '=pop'=>['pop'],      '=shift'=>['shift']}
                     }
@@ -155,11 +156,18 @@ olok(undef,{'=config' =>
             {a=>['ift','or','pu']}
             );
 
-# =code =run
+# =run
 olok({a=>1},{a=>{'=run'=>{code=>sub{[@_]}}}} => {a=>[1]});
 olok({a=>1},{a=>{'=run'=>{code=>sub{[@_]}, args=>[2,3]}}} => {a=>[1,2,3]});
+olok({a=>1},{a=>{'=run'=>{code=>sub{"got $_[0]"}}}} => {a=>"got 1"});
+# standard last item of list behaviour
+olok({a=>1},{a=>{'=run'=>{code=>sub{qw(a b c)}}}} => {a=>'c'});
+# run called in scalar context
+olok(undef,{'=run'=>{code=>sub{wantarray}}} => '');
+olok({a=>1},{a=>{'=run'=>{code=>sub{wantarray}}}} => {a=>''});
+
 # =foreach
-# =seq
+# =seq / all
 # =config
 
 done_testing();
