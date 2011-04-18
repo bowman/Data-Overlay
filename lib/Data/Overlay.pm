@@ -8,6 +8,7 @@ use List::Util qw(reduce max);
 use List::MoreUtils qw(part);
 use Sub::Name qw(subname);
 use Exporter 'import';
+# Data::Dumper lazy loaded
 
 our $VERSION = '0.51';
 our @EXPORT = qw(overlay);
@@ -329,14 +330,14 @@ sub _wrap_debug {
                          && $conf->{debug_actions}{$action_name} ));
         if ($debug) {
             warn "Calling $action_name $inner_sub\n";
-            warn "  with ", dt($overlay), "\n" if $debug >= 1;
-            warn "    conf ", dt({map { "$_" } %$conf}), "\n" if $debug >= 2;
+            warn "  with ", _dt($overlay), "\n" if $debug >= 1;
+            warn "    conf ", _dt({map { "$_" } %$conf}), "\n" if $debug >= 2;
             cluck " CALL STACK" if $debug >= 3;
         }
         my $result = $inner_sub->($old_ds, $overlay, $conf);
         if ($debug) {
             warn " Back from $action_name\n";
-            warn "  got ", dt($result), "\n" if $debug >= 2;
+            warn "  got ", _dt($result), "\n" if $debug >= 2;
         }
         return $result;
     };
@@ -346,7 +347,8 @@ sub _wrap_debug {
 }
 
 
-sub dt {
+sub _dt {
+    require Data::Dumper;
     my $dumper = Data::Dumper->new( map [$_], @_ );
     $dumper->Indent(0)->Terse(1);
     $dumper->Sortkeys(1) if $dumper->can("Sortkeys");

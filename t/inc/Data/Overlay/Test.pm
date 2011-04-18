@@ -8,6 +8,9 @@ use Data::Overlay qw(overlay);
 use Exporter 'import';
 our @EXPORT = qw(olok dt);
 
+# name internal _dt as dt for use in testing (not part of the API)
+*dt = \&Data::Overlay::_dt;
+
 sub olok {
     my ($ds, $overlay, $expect) = @_;
 
@@ -19,13 +22,6 @@ sub olok {
                 "ol  = ", explain($overlay),
                 "exp = ", explain($expect),
                 "got = ", explain(overlay( $ds,  $overlay)),
-}
-
-sub dt {
-    my $dumper = Data::Dumper->new( map [$_], @_ );
-    $dumper->Indent(0)->Terse(1);
-    $dumper->Sortkeys(1) if $dumper->can("Sortkeys");
-    return $dumper->Dump;
 }
 
 1;
