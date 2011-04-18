@@ -348,7 +348,7 @@ $action_map{defaults} = sub {
     }
 };
 
-=item 
+=item delete
 
 =cut
 
@@ -373,7 +373,7 @@ $action_map{delete} = sub {
     }
 };
 
-=item 
+=item default
 
 =cut
 
@@ -382,7 +382,7 @@ $action_map{default} = sub {
     return $old_ds // $overlay;
 };
 
-=item 
+=item or
 
 =cut
 
@@ -391,7 +391,7 @@ $action_map{or} = sub {
     return $old_ds || $overlay;
 };
 
-=item 
+=item push
 
 =cut
 
@@ -409,7 +409,7 @@ $action_map{push} = sub {
     }
 };
 
-=item 
+=item unshift
 
 =cut
 
@@ -427,7 +427,7 @@ $action_map{unshift} = sub {
     }
 };
 
-=item 
+=item pop
 
 =cut
 
@@ -448,7 +448,7 @@ $action_map{pop} = sub {
     }
 };
 
-=item 
+=item shift
 
 =cut
 
@@ -469,7 +469,7 @@ $action_map{shift} = sub {
     }
 };
 
-=item 
+=item run
 
 =cut
 
@@ -478,7 +478,7 @@ $action_map{run} = sub {
     return $overlay->{code}->($old_ds, $overlay->{args});
 };
 
-=item 
+=item foreach
 
 =cut
 
@@ -500,7 +500,7 @@ $action_map{foreach} = sub {
     }
 };
 
-=item 
+=item seq
 
 =cut
 
@@ -670,19 +670,40 @@ grep
 
 =head1 Cookbook and Serving Suggestions
 
+Some made up use-cases.
+
 =head2 Configuration Data Merging
+
+ overlay_all($defaults, $host_conf, $app_conf, $user_conf, $cmd_line_conf);
+
 =head2 List of Undoable Edits
 
+Use the memory sharing to keep a sequence of persistent data structures.
+"Persistent" in the functional programming sense, you can
+access (read-only) old and new versions.
+
 =head2 Circular References in Overlays
+
+There is no protection against reference cycles in overlays.
+
 =head2 Unsharing Data with Clone
+
 Storable, etc
+
 =head2 Escaping "=" Keys
+
 Rmap
+
 =head2 Writing Your Own Callbacks
 
 Note that while most of the names of core actions are based
 on mutating perl functions, their implementation is careful
 to do shallow copies.
+
+=head2 Readonly for Testing
+
+The Readonly module is useful for testing that nothing is
+changing data that is supposed to be Readonly.
 
 =head2 Sharing State in Callbacks
 
