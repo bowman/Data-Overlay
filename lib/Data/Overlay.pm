@@ -22,7 +22,7 @@ Data::Overlay - merge/overlay data with composable changes
 
 =head1 VERSION
 
-Data::Overlay version 0.51 - ALPHA, no compatibility promises
+Data::Overlay version 0.51 - ALPHA, no compatibility promises, seriously
 
 =head1 SYNOPSIS
 
@@ -741,51 +741,52 @@ Please report any bugs or feature requests to
 C<bug-data-edit@rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org>.
 
-=head1 See Also
+=head1 SEE ALSO
 
-Hash::Merge merge with global options
-Data::Utilities
-    Data::Merger merge with call-time options
-Data::Nested merging (per application options), paths and schemas
-Data::ModeMerge
+Merging of nested data structures:
+
+ * L<Hash::Merge> merge with global options
+ * L<Data::Utilities> (L<Data::Merger>) merge with call-time options
+ * L<Data::Nested> merging (per application options), paths and schemas
+ * L<Data::ModeMerge> mode (overwrite/add/default) is in the data merged,
+   like Data::Overlay.
 
 "Path" based access to nested data structures:
 
-Data::Path
-Data::DPath
-Data::SPath
-Data::FetchPath eval-able paths
-Class::XPath
-CGI::Expand
-Data::Hive paths, accessors and better HoH
-List::Util C<<reduce { eval { $a->$b } } $object, split(/\./, $_)>>
+ * L<Data::Path>
+ * L<Data::DPath>
+ * L<Data::SPath>
+ * L<Data::FetchPath> eval-able paths
+ * L<Class::XPath>
+ * L<CGI::Expand>
+ * L<Data::Hive> paths, accessors and better HoH
+ * L<List::Util> C<<reduce { eval { $a->$b } } $object, split(/\./, $_)>>
 
 Lazy deep copying nested data:
 
-Data::COW - Copy on write
+ * L<Data::COW> - Copy on write
 
 Data structure differences:
 
-Data::Diff
-Data::Utilities
-    Data::Comparator
-Data::Rx schema
+ * L<Data::Diff>
+ * L<Data::Utilities> (L<Data::Comparator>)
+ * L<Data::Rx> schema checking
+ * L<Test::Deep>
 
-Data::Visitor retain_magic option Variable::Magic
-
-autovivification
+L<autovivification> can avoid nested accesses creating intermediate keys.
 
 There some overlap between what this module is trying to do
 and both the darcs "theory of patches", and operational
-transforms.  The overlap is mainly around composing and inverting
-changes, but there's nothing particularly concurrent about Data::Overlay.
+transforms.  The overlap is mainly around composing changes,
+but there's nothing particularly concurrent about Data::Overlay.
+Also, patches and operations have more context and are invertible.
 
 =head1 KEYWORDS
 
-Merge, edit, overlay, clone, modify, transform, memory sharing,
-operational transform, patch,
+Merge, edit, overlay, clone, modify, transform, memory sharing, COW,
+operational transform, patch.
 
-An SEO expert walked into a bar, tavern, pub...
+So an SEO expert walks into a bar, tavern, pub...
 
 =head1 AUTHOR
 
