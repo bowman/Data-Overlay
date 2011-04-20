@@ -305,13 +305,13 @@ $action_map{config} = sub {
 
     #my $new_conf = overlay($old_conf, $overlay->{conf}, $old_conf);
     # do we really want a config here XXX?
-    my $new_conf = overlay($old_conf, $overlay->{conf});
+    my $new_conf = overlay($old_conf, $overlay->{conf}); # eat dogfood #1
 
     # wrap all actions with debug if needed
     if (!defined $old_conf->{debug}
             && $new_conf->{debug} ) {
 
-        # XXX overlay action_map
+        # XXX overlay action_map, eat dogfood #2
         my $old_action_map = $new_conf->{action_map};
         my $new_action_map;
 
