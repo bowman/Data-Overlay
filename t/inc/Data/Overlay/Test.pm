@@ -9,11 +9,16 @@ use Data::Overlay qw(overlay overlay_all);
 use Exporter 'import';
 our @EXPORT = qw(olok olallok dt);
 
+use Readonly;
+
 # name internal _dt as dt for use in testing (not part of the API)
 *dt = \&Data::Overlay::_dt;
 
 sub olok {
-    my ($ds, $overlay, $expect) = @_;
+    # my ($ds, $overlay, $expect) = @_;
+    Readonly my $ds => shift;
+    Readonly my $overlay => shift;
+    Readonly my $expect => shift;
 
     local $Test::Builder::Level = $Test::Builder::Level + 1;
 
