@@ -744,33 +744,63 @@ L<http://rt.cpan.org>.
 
 Merging of nested data structures:
 
- * L<Hash::Merge> merge with global options
- * L<Data::Utilities> (L<Data::Merger>) merge with call-time options
- * L<Data::Nested> merging (per application options), paths and schemas
- * L<Data::ModeMerge> mode (overwrite/add/default) is in the data merged,
-   like Data::Overlay.
+=over
+
+=item * L<Hash::Merge> merge with global options
+
+=item * L<Data::Utilities> (L<Data::Merger>) merge with call-time options
+
+=item * L<Data::Nested> merging (per application options), paths and schemas
+
+=item * L<Data::ModeMerge> mode (overwrite/add/default) is in the data merged, like Data::Overlay.
+
+=back
 
 "Path" based access to nested data structures:
 
- * L<Data::Path>
- * L<Data::DPath>
- * L<Data::SPath>
- * L<Data::FetchPath> eval-able paths
- * L<Class::XPath>
- * L<CGI::Expand>
- * L<Data::Hive> paths, accessors and better HoH
- * L<List::Util> C<<reduce { eval { $a->$b } } $object, split(/\./, $_)>>
+=over
+
+=item * L<Data::Path>
+
+=item * L<Data::DPath>
+
+=item * L<Data::SPath>
+
+=item * L<Data::FetchPath> eval-able paths
+
+=item * L<Class::XPath>
+
+=item * L<CGI::Expand>
+
+=item * L<Data::Hive> paths, accessors and better HoH
+
+=item * L<List::Util>
+
+    reduce { eval { $a->$b } } $object, split(/\./, $_)
+
+=back
 
 Lazy deep copying nested data:
 
- * L<Data::COW> - Copy on write
+=over
+
+=item * L<Data::COW> - Copy on write
+
+=back
 
 Data structure differences:
 
- * L<Data::Diff>
- * L<Data::Utilities> (L<Data::Comparator>)
- * L<Data::Rx> schema checking
- * L<Test::Deep>
+=over
+
+=item * L<Data::Diff>
+
+=item * L<Data::Utilities> (L<Data::Comparator>)
+
+=item * L<Data::Rx> schema checking
+
+=item * L<Test::Deep>
+
+=back
 
 L<autovivification> can avoid nested accesses creating intermediate keys.
 
