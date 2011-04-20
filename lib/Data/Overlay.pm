@@ -72,7 +72,6 @@ __END__
 Once Data::Overlay is installed, you can run it with either:
 
     perl -x -MData::Overlay `pmpath Data::Overlay`
-    perl -x -MData::Overlay `pmpath Data::Overlay` -m # Peek result
 
     perl -x -MData::Overlay \
         `perl -MData::Overlay -le 'print $INC{"Data/Overlay.pm"}'`
