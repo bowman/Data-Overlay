@@ -1,5 +1,6 @@
 package Data::Overlay;
 
+use 5.10.0; # for //
 use warnings;
 use strict;
 use Carp qw(cluck confess);
@@ -698,7 +699,11 @@ There is no protection against reference cycles in overlays.
 
 =head2 Unsharing Data with Clone
 
-Storable, etc
+If you don't want any sharing of data between the result and
+source or overlay, then use a clone.
+Either L<Storable>'s dclone or L<Clone>
+
+    $new_clone = dclone(overlay($old, $overlay));
 
 =head2 Escaping "=" Keys
 
@@ -752,7 +757,11 @@ Merging of nested data structures:
 
 =item * L<Data::Nested> merging (per application options), paths and schemas
 
-=item * L<Data::ModeMerge> mode (overwrite/add/default) is in the data merged, like Data::Overlay.
+=item * L<Data::ModeMerge>
+
+"Mode" (overwrite/add/default) is in the data merged, like Data::Overlay.
+Uses special characters to indicate the action performed.  Also permits
+local config overrides and extensions.
 
 =back
 
@@ -761,6 +770,8 @@ Merging of nested data structures:
 =over
 
 =item * L<Data::Path>
+
+OO XPath-like access to complex data structures
 
 =item * L<Data::DPath>
 
