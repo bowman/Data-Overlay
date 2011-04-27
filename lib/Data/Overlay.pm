@@ -11,7 +11,7 @@ use Sub::Name qw(subname);
 use Exporter 'import';
 # Data::Dumper lazy loaded
 
-our $VERSION = '0.51';
+our $VERSION = '0.53';
 $VERSION = eval $VERSION; ## no critic
 
 our @EXPORT = qw(overlay);
