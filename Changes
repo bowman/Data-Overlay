@@ -1,6 +1,7 @@
 Revision history for Data-Overlay
 
 {{$NEXT}}
+        require perl 5.10.0 for //
 
 0.51    Mon Apr 18 14:34:00 EST 2011
         Initial ALPHA release.
