@@ -129,6 +129,7 @@ olok({a=>[1]},{a=>{'=push'=>['push'], '=unshift'=>['unshift'],
                    '=pop'=>['pop'],   '=shift'=>['shift']}
                 } => {a=>[1]});
 
+# =config
 # try config (mainly for debugging other tests, like the next)
 olok(undef,{'=config' =>
                 {
@@ -187,6 +188,17 @@ olok({a=>{c=>{b=>1}}},{a=>{'=foreach'=>{b=>2}}} => {a=>{c=>{b=>2}}});
 olok({a=>{c=>{d=>1}}},{a=>{'=foreach'=>{b=>2}}} => {a=>{c=>{b=>2,d=>1}}});
 
 # =seq / all
-# =config
+olok({a=>1},{'=seq'=>[]} => {a=>1});
+olok({a=>1},{'=seq'=>[{}]} => {a=>1});
+olok({a=>1},{'=seq'=>[{a=>2}]} => {a=>2});
+olok({a=>1},{'=seq'=>[{b=>2}]} => {a=>1,b=>2});
+olok({a=>1},{'=seq'=>[{a=>2},{a=>3}]} => {a=>3});
+olok({a=>undef},{'=seq'=>[{a=>{'=default'=>0}},{a=>3}]} => {a=>3});
+olok({a=>3},{'=seq'=>[{a=>{'=default'=>0}},{a=>undef}]} => {a=>undef});
+olok({a=>undef},{'=seq'=>[{a=>undef},{a=>{'=default'=>0}}]} => {a=>0});
+olok({a=>undef},{'=seq'=>[{a=>3},{a=>{'=default'=>0}}]} => {a=>3});
+olok({a=>undef},{'=seq'=>[{a=>{'=default'=>0}},{a=>{'=push'=>1}}]} => {a=>[0,1]});
+olok({a=>[1]},{'=seq'=>[{a=>{'=pop'=>9}},{a=>{'=push'=>2}}]} => {a=>[2]});
+olok({a=>[1]},{'=seq'=>[{a=>{'=push'=>2}},{a=>{'=pop'=>9}}]} => {a=>[1]});
 
 done_testing();
