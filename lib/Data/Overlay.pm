@@ -703,6 +703,8 @@ access (read-only) old and new versions.
 
 There is no protection against reference cycles in overlays.
 
+L<Devel::Cycle> or L<Data::Structure::Util> may help.
+
 =head2 Unsharing Data with Clone
 
 If you don't want any sharing of data between the result and
@@ -730,15 +732,18 @@ changing data that is supposed to be Readonly.
 
 Shared lexical variables.
 
+=head2 Where Are The Objects?
+
+This is a bit of an experiment in using data immutability, persistence
+and sharing instead of using OO conventions to manage changing state.
+(This approach doesn't hit all of the OO targets, but Data::Overlay's
+subset may be useful).
+
+Currently, all encapsulation and blessing is ignored, but that may change.
+
 =head1 DEPENDENCIES
 
-=for author to fill in:
-    A list of all the other modules that this module relies upon,
-    including any restrictions on versions, and an indication whether
-    the module is part of the standard Perl distribution, part of the
-    module's distribution, or must be installed separately. ]
-
-None.
+L<List::MoreUtils>, L<Sub::Name>
 
 =head1 BUGS AND LIMITATIONS
 
