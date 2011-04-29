@@ -491,6 +491,10 @@ $action_map{run} = sub {
 
 =item foreach
 
+Apply one overlay to all elements of an array or values of a hash
+(or just a scalar).  Often useful with =run if the overlay is
+a function of the original value.
+
 =cut
 
 # XXX each with (k,v) or [i,...]
@@ -504,7 +508,7 @@ $action_map{foreach} = sub {
         return {
             map {
                 $_ => overlay($old_ds->{$_}, $overlay, $conf)
-            } values %$old_ds
+            } keys %$old_ds
         };
     } else {
         return overlay($old_ds, $overlay, $conf);
