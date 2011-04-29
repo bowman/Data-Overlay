@@ -517,6 +517,8 @@ $action_map{foreach} = sub {
 
 =item seq
 
+Apply in sequence an array of overlays.
+
 =cut
 
 $action_map{seq} = sub {
