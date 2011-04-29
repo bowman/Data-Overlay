@@ -166,7 +166,26 @@ olok({a=>1},{a=>{'=run'=>{code=>sub{qw(a b c)}}}} => {a=>'c'});
 olok(undef,{'=run'=>{code=>sub{wantarray}}} => '');
 olok({a=>1},{a=>{'=run'=>{code=>sub{wantarray}}}} => {a=>''});
 
-# =foreach
+# =foreach hash
+olok({a=>1},{'=foreach'=>2} => {a=>2});
+olok({a=>1},{'=foreach'=>undef} => {a=>undef});
+olok({a=>1},{'=foreach'=>0} => {a=>0});
+olok({a=>1},{'=foreach'=>{}} => {a=>1});
+olok({a=>1,b=>0},{'=foreach'=>2} => {a=>2,b=>2});
+olok({a=>1,b=>0},{'=foreach'=>{'=or'=>2}} => {a=>1,b=>2});
+# =foreach array
+olok([1],{'=foreach'=>2} => [2]);
+olok([1],{'=foreach'=>undef} => [undef]);
+olok([1],{'=foreach'=>0} => [0]);
+olok([1],{'=foreach'=>{}} => [1]);
+olok([0,1],{'=foreach'=>2} => [2,2]);
+olok([0,1],{'=foreach'=>{'=or'=>2}} => [2,1]);
+
+# =foreach lower level
+olok({a=>{c=>[123]}},{a=>{'=foreach'=>{b=>2}}} => {a=>{c=>{b=>2}}});
+olok({a=>{c=>{b=>1}}},{a=>{'=foreach'=>{b=>2}}} => {a=>{c=>{b=>2}}});
+olok({a=>{c=>{d=>1}}},{a=>{'=foreach'=>{b=>2}}} => {a=>{c=>{b=>2,d=>1}}});
+
 # =seq / all
 # =config
 
