@@ -150,7 +150,7 @@ my $default_conf = {
     };
 # weaken( $default_conf->{action_map} ); XXX
 
-@action_order = qw(config delete default or defaults
+@action_order = qw(config overwrite delete default or defaults
                    unshift push
                    shift   pop
                    foreach seq run);
@@ -221,7 +221,7 @@ sub overlay {
         for my $action_key (_sort_actions($actions, $conf)) {
             my ($action) = ($action_key =~ /^=(.*)/);
             my $callback = $conf->{action_map}{$action};
-            die "No action ($action) in action_map" unless $callback;
+            die "No action '$action' in action_map" unless $callback;
             $new_ds = $callback->($new_ds, $overlay->{$action_key}, $conf);
         }
 
@@ -255,9 +255,13 @@ sub overlay {
 
         return $new_ds;
     } else {
-        # all scalars and non-HASH overlay elements are overrides
-        return $overlay;
+        # all scalars and non-HASH overlay elements are 'overwrite'
+        # (by default, you could intercept all and do other things...)
+        my $callback = $conf->{action_map}{overwrite};
+        die "No action 'overwrite' in action_map" unless $callback;
+        return $callback->($ds, $overlay, $conf);
     }
+
     confess "A return is missing somewhere";
 }
 
@@ -297,6 +301,8 @@ sub compose {
 
 =over 4
 
+=cut
+
 =item config
 
 =cut
@@ -329,6 +335,15 @@ $action_map{config} = sub {
     }
 
     return overlay($old_ds, $overlay->{data}, $new_conf);
+};
+
+=item overwrite
+
+=cut
+
+$action_map{overwrite} = sub {
+    my ($old_ds, $overlay, $conf) = @_;
+    return $overlay;
 };
 
 =item defaults
