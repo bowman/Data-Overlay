@@ -11,7 +11,7 @@ use Sub::Name qw(subname);
 use Exporter 'import';
 # Data::Dumper lazy loaded
 
-our $VERSION = '0.53';
+our $VERSION = '0.54';
 $VERSION = eval $VERSION; ## no critic
 
 our @EXPORT = qw(overlay);
@@ -23,7 +23,7 @@ Data::Overlay - merge/overlay data with composable changes
 
 =head1 VERSION
 
-Data::Overlay version 0.51 - ALPHA, no compatibility promises, seriously
+Data::Overlay version 0.54 - ALPHA, no compatibility promises, seriously
 
 =head1 SYNOPSIS
 
