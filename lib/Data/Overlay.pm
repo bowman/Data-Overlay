@@ -609,21 +609,12 @@ sub _combine (&) { ## no critic
 __PACKAGE__; # true return
 __END__
 
-default // dor def_or
-or ||
-push pop shift unshift
-run code
-foreach
-seq
-
-defaults {}
-
-config - set local config (override action map / inverse)
 exists
 delete
 
 and/if/ifthen replace if $ds is true
 sprintf prepend_str append_str interpolate $_
+splice grep map sort
 +/-/*/++/--/x/%/**/./<</>>
 | & ^ ~ masks boolean logic
 conditionals? comparison?
@@ -643,39 +634,6 @@ grep
            "chomp", "chop", "chr", "crypt", "hex", "index", "lc", "lcfirst",
            "length", "oct", "ord", "pack", "q//", "qq//", "reverse", "rindex",
            "sprintf", "substr", "tr///", "uc", "ucfirst", "y///"
-
-       Regular expressions and pattern matching
-           "m//", "pos", "quotemeta", "s///", "split", "study", "qr//"
-
-       Functions for real @ARRAYs
-           "pop", "push", "shift", "splice", "unshift"
-
-       Functions for list data
-           "grep", "join", "map", "qw//", "reverse", "sort", "unpack"
-
-       Functions for real %HASHes
-           "delete", "each", "exists", "keys", "values"
-
-       Functions for fixed length data or records
-           "pack", "read", "syscall", "sysread", "syswrite", "unpack", "vec"
-
-
-       Keywords related to the control flow of your Perl program
-           "caller", "continue", "die", "do", "dump", "eval", "exit", "goto",
-           "last", "next", "redo", "return", "sub", "wantarray"
-
-       Miscellaneous functions
-           "defined", "dump", "eval", "formline", "local", "my", "our",
-           "reset", "scalar", "state", "undef", "wantarray"
-
-       Functions new in perl5
-           "abs", "bless", "break", "chomp", "chr", "continue", "default",
-           "exists", "formline", "given", "glob", "import", "lc", "lcfirst",
-           "lock", "map", "my", "no", "our", "prototype", "qr//", "qw//",
-           "qx//", "readline", "readpipe", "ref", "sub"*, "sysopen", "tie",
-           "tied", "uc", "ucfirst", "untie", "use", "when"
-
-
 
 =head1 DIAGNOSTICS
 
