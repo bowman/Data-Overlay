@@ -9,7 +9,7 @@ use List::Util qw(reduce max);
 use List::MoreUtils qw(part);
 use Sub::Name qw(subname);
 use Exporter 'import';
-# Data::Dumper lazy loaded
+# Data::Dumper lazy loaded when debugging
 
 our $VERSION = '0.54';
 $VERSION = eval $VERSION; ## no critic
@@ -113,27 +113,22 @@ but they combine the original and overlay in various ways,
 pushing/unshifting arrays, only overwriting false or undefined,
 up to providing ability to write your own combining callback.
 
-=head2 Memory Sharing
+=head2 Reference Sharing
 
-Cloning
-
+Data::Overlay tries to minimize copying and so will try
+to share references between the new structure and the old structure
+and overlay.  This means that changing any of these is likely
+to produce unintended consequences.  This sharing is only
+practical when the data structures are either read-only or
+cloned immediately after overlaying (Cloner not included).
 
 =head1 GLOSSARY
 
-overlay - (verb)
-        - (noun)
+  overlay
+       v : put something on top of something else
+       n : layer put on top of something else
 
-$ds, $old_ds, $new_ds - arbitrary Perl data-structure
-
-
-
-=head1 TODO
-
-I'm not sure about the overlay pile, maybe should just be one
-overlay at a time to make the client use compose or write
-a single one.  That seems a bit mean though.
-
-Self-referential ds & overlays.
+  $ds, $old_ds, $new_ds - arbitrary, nested Perl data-structures
 
 =cut
 
@@ -148,7 +143,6 @@ my $default_conf = {
         #state      => {},
         #protocol   => {},
     };
-# weaken( $default_conf->{action_map} ); XXX
 
 @action_order = qw(config overwrite delete default or defaults
                    unshift push
@@ -187,8 +181,8 @@ sub _isreftype {
 
 Apply an overlay to $old_ds, returning $new_ds as the result.
 
-$old_ds is unchanged.  $new_ds may share references to part
-of $old_ds (see L<Memory Sharing>).  If this isn't desired
+$old_ds is unchanged.  $new_ds may share references to parts
+of $old_ds and $overlay (see L<Reference Sharing>).  If this isn't desired
 then clone $new_ds.
 
 =cut
@@ -211,13 +205,14 @@ sub overlay {
         # part might leave undefs
         $_ ||= [] for ($overlay_keys, $actions, $escaped_keys);
 
-        # 0-level copy so that actions operate on $ds in whatever form
-        my $new_ds = $ds;
+        # 0-level $ds copy for actions that operate on $new_ds as a whole
+        # ($new_ds need not be a HASH here)
+        my $new_ds = $ds; # don't use $ds anymore, $new_ds instead
 
         # apply each action in order to $new_ds, sequentially
         # (note that some items really need to nest inner overlays
-        #  to be useful, eg. config applies only to children under "data",
-        #  not to peers)
+        #  to be useful, eg. config applies only in a dynamic scope
+        #  to children under "data", not to peers)
         for my $action_key (_sort_actions($actions, $conf)) {
             my ($action) = ($action_key =~ /^=(.*)/);
             my $callback = $conf->{action_map}{$action};
@@ -229,14 +224,12 @@ sub overlay {
         # ( important for overlaying scalars, eg. a: 1 +++ a: =default: 1 )
         return $new_ds unless @$overlay_keys || @$escaped_keys;
 
-        $ds = undef; # don't use $ds anymore, $new_ds instead
-
-        # There are keys in overlay, so insist on a $new_ds hash
+        # There are non-action keys in overlay, so insist on a $new_ds hash
         # (Shallow copy $new_ds in case it is a reference to $ds)
         if (_isreftype(HASH => $new_ds)) {
             $new_ds = { %$new_ds }; # shallow copy
         } else {
-            $new_ds = {}; # $new_ds is not a HASH ($ds wasn't), must one
+            $new_ds = {}; # $new_ds is not a HASH ($ds wasn't), must become one
         }
 
         # apply overlay_keys to $new_ds
