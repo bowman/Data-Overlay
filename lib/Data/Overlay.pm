@@ -742,31 +742,21 @@ local config overrides and extensions.
 
 =back
 
-"Path" based access to nested data structures:
+Potential overlay builders, modules that could be used to build
+overlays for data:
 
 =over
 
-=item * L<Data::Path>
-
-OO XPath-like access to complex data structures
-
-=item * L<Data::DPath>
-
-XPath inspired data access
-
-=item * L<Data::SPath>
-
-=item * L<Data::FetchPath> eval-able paths to data (fetch a path to $x)
-
-=item * L<Class::XPath>
-
 =item * L<CGI::Expand>
 
-=item * L<Data::Hive> paths, accessors and better HoH
+Build nested hashes from a flat path hash:
 
-=item * L<List::Util>
+    use CGI::Expand qw(expand_hash);
 
-    reduce { eval { $a->$b } } $object, split(/\./, $_)
+    my $overlay = expand_hash({"a.b.c"=>1,"a.b.d"=>[2,3]})
+    # = {'a' => {'b' => {'c' => 1,'d' => [1,2,3]}}};
+
+L<Hash::Flatten> also has an unflatten function.
 
 =back
 
