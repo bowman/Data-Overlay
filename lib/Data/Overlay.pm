@@ -752,9 +752,11 @@ OO XPath-like access to complex data structures
 
 =item * L<Data::DPath>
 
+XPath inspired data access
+
 =item * L<Data::SPath>
 
-=item * L<Data::FetchPath> eval-able paths
+=item * L<Data::FetchPath> eval-able paths to data (fetch a path to $x)
 
 =item * L<Class::XPath>
 
