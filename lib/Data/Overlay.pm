@@ -332,6 +332,18 @@ $action_map{config} = sub {
 
 =item overwrite
 
+"Overwrite" the old location with the value of the overwrite key.
+This is the default action for non-HASH overlay elements.
+(The actual action used in this implicit case and also
+the explicit case is $conf->{action_map}{overwrite},
+so it can be overriden).
+
+You can also use C<overwrite> explicitly, to overlay an empty
+hash (which would otherwise be treated as a keyless, no-op overlay):
+
+  overlay(undef, {});                   # -> undef
+  overlay(undef, {'=overwrite'=>{}});   # -> {}
+
 =cut
 
 $action_map{overwrite} = sub {

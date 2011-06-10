@@ -21,6 +21,8 @@ perl -Ilib -MYAML::XS -MData::Overlay -le 'print "TOP ", Dump ' -e \
 olok({},undef, undef);
 olok({},{} => {});
 olok(undef,{} => undef);
+# action test, but answers the "how do I overlay an empty hash?"
+olok(undef,{'=overwrite'=>{}} => {});
 olok({a=>1},{} => {a=>1});
 olok({},{a=>1} => {a=>1});
 olok({},{a=>1},{a=>1} => {a=>1});
