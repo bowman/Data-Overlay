@@ -15,7 +15,7 @@ our $VERSION = '0.54';
 $VERSION = eval $VERSION; ## no critic
 
 our @EXPORT = qw(overlay);
-our @EXPORT_OK = qw(overlay overlay_all compose);
+our @EXPORT_OK = qw(overlay overlay_all compose combine_with);
 
 =head1 NAME
 
@@ -290,6 +290,31 @@ sub compose {
     return { '=seq' => \@overlays };
 }
 
+=head2 combine_with
+
+    $combiner_sub = combine_with { $a && $b };
+    my $conf = { action_map => {
+                    and => $combiner_sub
+                 } };
+    my $new = overlay($this, $that, $conf);
+
+Utility to build simple overlay actions.
+
+$a is the old_ds parameter, $b is the overlay parameter.
+@_ contains the rest.
+
+=cut
+#$action_map{default} = combine_with { $a // $b};
+sub combine_with (&@) {
+    my ($code) = shift;
+
+    return sub {
+        local ($a) = shift; # $old_ds
+        local ($b) = shift; # $overlay
+        return $code->(@_); # $conf (remainder of args in @_)
+    };
+}
+
 =head2 Actions
 
 =over 4
@@ -399,19 +424,13 @@ $action_map{delete} = sub {
 
 =cut
 
-$action_map{default} = sub {
-    my ($old_ds, $overlay) = @_;
-    return $old_ds // $overlay;
-};
+$action_map{default} = combine_with { $a // $b};
 
 =item or
 
 =cut
 
-$action_map{or} = sub {
-    my ($old_ds, $overlay) = @_;
-    return $old_ds || $overlay;
-};
+$action_map{or} = combine_with { $a || $b};
 
 =item push
 
@@ -600,16 +619,6 @@ sub _dt {
     return $dumper->Dump;
 }
 
-
-sub _combine (&) { ## no critic
-    my $code = @_;
-    return sub {
-        my ($old_ds, $overlay, $conf) = @_;
-        # $a = old, $b = new for _combine { $a && $b }
-        $a = $old_ds; $b = $overlay;
-        return $code->(@_);
-    }
-}
 
 __PACKAGE__; # true return
 __END__
