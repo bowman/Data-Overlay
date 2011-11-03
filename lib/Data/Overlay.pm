@@ -298,10 +298,13 @@ sub compose {
                  } };
     my $new = overlay($this, $that, $conf);
 
-Utility to build simple overlay actions.
+Utility to build simple overlay actions.  For example, the included
+"or" is just:
+
+    combine_with { $a || $b};
 
 $a is the old_ds parameter, $b is the overlay parameter.
-@_ contains the rest.
+@_ contains the rest of the arguments.
 
 =cut
 #$action_map{default} = combine_with { $a // $b};
