@@ -10,6 +10,7 @@ state threading example
 test memory sharing
 $overlay = diff($old,$new)
 GLOB, SCALAR, REF, blessed
+=shift_uniq =push_uniq path-ish manipulations
 
 Melb.pm: defor, Math::BigFloat & dumping, =namespace config,
     blessing the overlay objects (as a way to tag actions out of band)

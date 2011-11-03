@@ -147,7 +147,9 @@ my $default_conf = {
 @action_order = qw(config overwrite delete default or defaults
                    unshift push
                    shift   pop
-                   foreach seq run);
+                   foreach seq run
+                    unshift_uniq push_uniq
+                  );
 
 sub _sort_actions {
     my ($actions, $conf) = @_;
@@ -509,6 +511,35 @@ $action_map{shift} = sub {
         return [ ]; # shift "one elem array", or zero
     }
 };
+
+=item unshift_uniq
+
+Unshift an item onto an array, removing any duplicates of newly unshifted
+items, if duplicates exist.  Other duplicates are'
+Intended for PATH list like manipulations.
+
+"Equality" uses a seen hash, which may or may not be what is
+desired for reference types.
+
+(I'm assuming that push_uniq isn't very useful, let me know if it is)
+
+=cut
+
+$action_map{unshift_uniq} = sub {
+    my ($old_ds, $overlay) = @_;
+
+    # flatten 1 level of ARRAY
+    my @overlay_array = _isreftype(ARRAY => $overlay)
+                ? @$overlay : $overlay;
+    my %have_new = map { ($_ => 1) } @overlay_array;
+
+    if (_isreftype(ARRAY => $old_ds)) {
+        return [ @overlay_array, grep { !$have_new{$_} } @$old_ds ];
+    } else {
+        return [ @overlay_array, grep { !$have_new{$_} } $old_ds ]; # one elem
+    }
+};
+
 
 =item run
 
