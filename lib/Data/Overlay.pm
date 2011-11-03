@@ -54,7 +54,7 @@ Data::Overlay version 0.54 - ALPHA, no compatibility promises, seriously
         c  => { '=push' => 7 },     # append array
         d  => { da => [ "DA" ],     # replace w/ differing type
                 db => {
-                    '=default' => 123,  # only update if undef
+                    '=defor' => 123,  # only update if undef
                 },
               },
     );
@@ -144,7 +144,7 @@ my $default_conf = {
         #protocol   => {},
     };
 
-@action_order = qw(config overwrite delete default or defaults
+@action_order = qw(config overwrite delete defor or defaults
                    unshift push
                    shift   pop
                    foreach seq run);
@@ -221,7 +221,7 @@ sub overlay {
         }
 
         # return if there are only actions, no plain keys
-        # ( important for overlaying scalars, eg. a: 1 +++ a: =default: 1 )
+        # ( important for overlaying scalars, eg. a: 1 +++ a: =defor 1 )
         return $new_ds unless @$overlay_keys || @$escaped_keys;
 
         # There are non-action keys in overlay, so insist on a $new_ds hash
@@ -307,7 +307,7 @@ $a is the old_ds parameter, $b is the overlay parameter.
 @_ contains the rest of the arguments.
 
 =cut
-#$action_map{default} = combine_with { $a // $b};
+#$action_map{defor} = combine_with { $a // $b};
 sub combine_with (&@) {
     my ($code) = shift;
 
@@ -423,11 +423,11 @@ $action_map{delete} = sub {
     }
 };
 
-=item default
+=item defor
 
 =cut
 
-$action_map{default} = combine_with { $a // $b};
+$action_map{defor} = combine_with { $a // $b};
 
 =item or
 
