@@ -425,6 +425,8 @@ $action_map{delete} = sub {
 
 =item defor
 
+Defined or (//) is used to combine the original and overlay
+
 =cut
 
 $action_map{defor} = combine_with { $a // $b};
