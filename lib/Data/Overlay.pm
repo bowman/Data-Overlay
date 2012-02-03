@@ -4,7 +4,7 @@ use 5.10.0; # for //
 use warnings;
 use strict;
 use Carp qw(cluck confess);
-use Scalar::Util qw(reftype refaddr);
+use Scalar::Util qw(reftype refaddr blessed);
 use List::Util qw(reduce max);
 use List::MoreUtils qw(part);
 use Sub::Name qw(subname);
@@ -170,6 +170,7 @@ sub _sort_actions {
 
 sub _isreftype {
     my ($type, $maybe_ref) = @_;
+    return 0 if blessed($maybe_ref);
     return reftype($maybe_ref) && reftype($maybe_ref) eq $type;
 }
 
@@ -248,7 +249,7 @@ sub overlay {
 
         return $new_ds;
     } else {
-        # all scalars and non-HASH overlay elements are 'overwrite'
+        # all scalars, blessed and non-HASH overlay elements are 'overwrite'
         # (by default, you could intercept all and do other things...)
         my $callback = $conf->{action_map}{overwrite};
         die "No action 'overwrite' in action_map" unless $callback;
@@ -731,7 +732,8 @@ and sharing instead of using OO conventions to manage changing state.
 (This approach doesn't hit all of the OO targets, but Data::Overlay's
 subset may be useful).
 
-Currently, all encapsulation and blessing is ignored, but that may change.
+Blessed references are treated as opaque object by default (not overlaid).
+(Encapsulation was ignored in developer release 0.53 and earlier).
 
 =head1 DEPENDENCIES
 

@@ -37,7 +37,7 @@ olallok({},{a=>1},{a=>{b=>2}} => {a=>{b=>2}});
 olallok({},{a=>1},{b=>2} => {a=>1,b=>2});
 
 # hash changes
-olok({a=>1},{a=>2} => {a=>1,a=>2});
+olok({a=>1},{a=>2} => {a=>2});
 olok({a=>1},{b=>2} => {a=>1,b=>2});
 
 # overlay overwrites (diff types)
