@@ -309,7 +309,7 @@ $a is the old_ds parameter, $b is the overlay parameter.
 
 =cut
 #$action_map{defor} = combine_with { $a // $b};
-sub combine_with (&@) {
+sub combine_with (&@) { ## no critic
     my ($code) = shift;
 
     return sub {
