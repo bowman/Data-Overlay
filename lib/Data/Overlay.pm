@@ -50,8 +50,8 @@ Data::Overlay version 0.54 - ALPHA, no compatibility promises, seriously
         f  => 0,                    # add top level key
         a  => '1, 2, 3',            # overwrite key
         b  => { z => '!'  },        # nested operation
-        c  => { '=unshift' => 3.5 },# prepend array
-        c  => { '=push' => 7 },     # append array
+        c  => { '=unshift' => 3,    # prepend array
+                '=push'    => 7 },  # append the same array
         d  => { da => [ "DA" ],     # replace w/ differing type
                 db => {
                     '=defor' => 123,  # only update if undef
@@ -94,13 +94,13 @@ values from it, or when nothing has changed, retaining the
 values of the original data structure.  This means that the
 only the overlay fully traversed.
 
-When the overlay is doesn't use any special Data::Overlay
+When the overlay doesn't use any special Data::Overlay
 keys (ones starting with "="), then the result will be
 the merger of the original and the overlay, with the overlay
 taking precedence.  In particular, only hashes will really
 be merged, somewhat like C<< %new = (%defaults, %options) >>,
 but recursively.  This means that array refs, scalars, code,
-etc. will be replace whatever is in the original, regardless
+etc. will replace whatever is in the original, regardless
 of the original type (so an array in the overlay will take
 precedence over an array, hash or scalar in the original).
 That's why it's not called Data::Underlay.
@@ -663,17 +663,14 @@ grep
     explanation of each problem, one or more likely causes, and any
     suggested remedies.
 
+
 =over
 
-=item C<< Error message here, perhaps with %s placeholders >>
+=item C<< No action '$action' in action_map >>
 
-[Description of error here]
-
-=item C<< Another error message here >>
-
-[Description of error here]
-
-[Et cetera, et cetera]
+The overlay contained an C<=action> that doesn't have a built in
+or custom callback configured.  This could be a typo in the action name,
+an unescaped leading "=" sign or some other misconfiguration.
 
 =back
 
@@ -708,7 +705,7 @@ Either L<Storable>'s dclone or L<Clone>
 
 =head2 Escaping "=" Keys
 
-Rmap
+L<Data::Rmap>
 
 =head2 Writing Your Own Callbacks
 
@@ -732,7 +729,7 @@ and sharing instead of using OO conventions to manage changing state.
 (This approach doesn't hit all of the OO targets, but Data::Overlay's
 subset may be useful).
 
-Blessed references are treated as opaque object by default (not overlaid).
+Blessed references are treated as opaque objects by default (not overlaid).
 (Encapsulation was ignored in developer release 0.53 and earlier).
 
 =head1 DEPENDENCIES
@@ -744,7 +741,7 @@ L<List::MoreUtils>, L<Sub::Name>
 I'm happy to hear suggestions, please email them or use RT
 in addition to using cpan ratings or annocpan (I'll notice them faster).
 
-No bugs have been reported.
+No bugs have been reported but there's certain to be some.
 
 Please report any bugs or feature requests to
 C<bug-data-edit@rt.cpan.org>, or through the web interface at
